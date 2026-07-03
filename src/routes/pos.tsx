@@ -236,7 +236,7 @@ function POSScreen() {
 
       <PaymentDialog open={payOpen} onClose={() => setPayOpen(false)} onDone={(o) => { setPayOpen(false); setReceipt(o); }} />
       <ReceiptDialog order={receipt} onClose={() => setReceipt(null)} />
-      <HeldDialog open={heldOpen} onClose={() => setHeldOpen(false)} onRecall={(id) => { recallOrder(id); setHeldOpen(false); }} onDelete={deleteHeld} held={heldOrders} />
+      <HeldDialog open={heldOpen} onClose={() => setHeldOpen(false)} onRecall={(id: string) => { recallOrder(id); setHeldOpen(false); }} onDelete={deleteHeld} held={heldOrders} />
       <HelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
     </AppLayout>
   );
