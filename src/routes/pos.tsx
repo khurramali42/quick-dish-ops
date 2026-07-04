@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ReceiptDialog } from "@/components/ReceiptDialog";
+import { ProductThumb } from "@/components/ImageUpload";
 import type { Order } from "@/lib/types";
 
 export const Route = createFileRoute("/pos")({
