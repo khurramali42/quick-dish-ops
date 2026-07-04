@@ -6,6 +6,7 @@ import { shortId } from "@/lib/format";
 import { useState } from "react";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ImageUpload, ProductThumb } from "@/components/ImageUpload";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/categories")({
