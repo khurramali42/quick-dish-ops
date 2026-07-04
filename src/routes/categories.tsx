@@ -50,12 +50,23 @@ function CategoriesPage() {
 
       {edit && (
         <Dialog open onOpenChange={(v) => !v && setEdit(null)}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>{edit.name ? "Edit category" : "New category"}</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <label className="text-xs"><div className="text-muted-foreground mb-1">Name</div><input value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} className="w-full h-9 rounded-lg border bg-background px-3 text-sm" /></label>
-              <label className="text-xs"><div className="text-muted-foreground mb-1">Icon (emoji)</div><input value={edit.icon} onChange={(e) => setEdit({ ...edit, icon: e.target.value })} className="w-full h-9 rounded-lg border bg-background px-3 text-sm" /></label>
-              <label className="text-xs flex items-center gap-2"><input type="checkbox" checked={edit.active} onChange={(e) => setEdit({ ...edit, active: e.target.checked })} /> Active</label>
+            <div className="grid grid-cols-[160px_1fr] gap-4">
+              <ImageUpload
+                imageUrl={edit.imageUrl}
+                thumbnailUrl={edit.thumbnailUrl}
+                fallbackEmoji={edit.icon || "🍽️"}
+                kind="category"
+                onChange={(v) => setEdit(v
+                  ? { ...edit, imageUrl: v.imageUrl, thumbnailUrl: v.thumbnailUrl }
+                  : { ...edit, imageUrl: undefined, thumbnailUrl: undefined })}
+              />
+              <div className="space-y-3">
+                <label className="text-xs block"><div className="text-muted-foreground mb-1">Name</div><input value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} className="w-full h-9 rounded-lg border bg-background px-3 text-sm" /></label>
+                <label className="text-xs block"><div className="text-muted-foreground mb-1">Emoji fallback</div><input value={edit.icon} onChange={(e) => setEdit({ ...edit, icon: e.target.value })} placeholder="🍕" className="w-full h-9 rounded-lg border bg-background px-3 text-sm" /></label>
+                <label className="text-xs flex items-center gap-2"><input type="checkbox" checked={edit.active} onChange={(e) => setEdit({ ...edit, active: e.target.checked })} /> Active</label>
+              </div>
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={() => setEdit(null)} className="px-4 py-2 rounded-lg border text-sm">Cancel</button>
