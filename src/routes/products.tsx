@@ -6,6 +6,7 @@ import type { Product } from "@/lib/types";
 import { useState } from "react";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ImageUpload, ProductThumb } from "@/components/ImageUpload";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/products")({
