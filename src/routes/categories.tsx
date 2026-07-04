@@ -32,13 +32,17 @@ function CategoriesPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {categories.map((c) => (
-          <div key={c.id} className="card-elevated p-5 flex flex-col items-center text-center relative group">
-            <div className="text-5xl mb-3">{c.icon}</div>
-            <div className="font-semibold">{c.name}</div>
-            <div className="text-xs text-muted-foreground mt-1">{products.filter((p) => p.categoryId === c.id).length} items</div>
+          <div key={c.id} className="card-elevated overflow-hidden relative group">
+            <div className="aspect-square bg-gradient-to-br from-accent to-secondary">
+              <ProductThumb src={c.thumbnailUrl ?? c.imageUrl} emoji={c.icon} />
+            </div>
+            <div className="p-3 text-center">
+              <div className="font-semibold">{c.name}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">{products.filter((p) => p.categoryId === c.id).length} items</div>
+            </div>
             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 flex gap-1">
-              <button onClick={() => setEdit(c)} className="p-1.5 rounded bg-background border"><Pencil className="h-3 w-3" /></button>
-              <button onClick={() => { if (confirm(`Delete "${c.name}"?`)) { deleteCategory(c.id); toast.success("Deleted"); } }} className="p-1.5 rounded bg-background border text-destructive"><Trash2 className="h-3 w-3" /></button>
+              <button onClick={() => setEdit(c)} className="p-1.5 rounded bg-background border shadow-sm"><Pencil className="h-3 w-3" /></button>
+              <button onClick={() => { if (confirm(`Delete "${c.name}"?`)) { deleteCategory(c.id); toast.success("Deleted"); } }} className="p-1.5 rounded bg-background border shadow-sm text-destructive"><Trash2 className="h-3 w-3" /></button>
             </div>
           </div>
         ))}
