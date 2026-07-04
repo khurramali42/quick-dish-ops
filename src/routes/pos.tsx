@@ -262,9 +262,9 @@ function ProductCard({ product, onSelect }: { product: Product; onSelect: () => 
       disabled={out}
       className="group text-left rounded-xl border bg-card overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      <div className="h-24 bg-gradient-to-br from-accent to-secondary flex items-center justify-center text-5xl relative">
-        {product.emoji ?? "🍽️"}
-        {product.featured && <span className="absolute top-2 left-2 bg-brand-gradient text-brand-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full">★ Popular</span>}
+      <div className={`${product.isDeal ? "aspect-[16/9]" : "h-28"} bg-gradient-to-br from-accent to-secondary relative overflow-hidden`}>
+        <ProductThumb src={product.thumbnailUrl ?? product.imageUrl} emoji={product.emoji ?? "🍽️"} />
+        {product.featured && <span className="absolute top-2 left-2 bg-brand-gradient text-brand-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full shadow">★ Popular</span>}
         {out ? (
           <span className="absolute top-2 right-2 bg-destructive text-destructive-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full">Out</span>
         ) : low ? (
