@@ -65,7 +65,14 @@ function ProductsPage() {
           <tbody className="divide-y">
             {filtered.map((p) => (
               <tr key={p.id} className="hover:bg-muted/30">
-                <td className="px-4 py-2.5 flex items-center gap-2"><span className="text-xl">{p.emoji}</span> <span className="font-medium">{p.name}</span></td>
+                <td className="px-4 py-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-10 w-10 rounded-md overflow-hidden border shrink-0">
+                      <ProductThumb src={p.thumbnailUrl ?? p.imageUrl} emoji={p.emoji ?? "🍽️"} size="sm" />
+                    </div>
+                    <span className="font-medium">{p.name}</span>
+                  </div>
+                </td>
                 <td className="px-4 py-2.5 text-muted-foreground">{categories.find((c) => c.id === p.categoryId)?.name ?? "—"}</td>
                 <td className="px-4 py-2.5 font-mono text-xs">{p.sku}</td>
                 <td className="px-4 py-2.5 text-right">{money(p.cost, settings.currency)}</td>
