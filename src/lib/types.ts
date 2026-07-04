@@ -33,6 +33,12 @@ export interface Product {
   cost: number;
   taxRate: number; // percent
   image?: string;
+  imageUrl?: string;
+  thumbnailUrl?: string;
+  imageMimeType?: string;
+  imageFileSize?: number;
+  imageAltText?: string;
+  imageUploadedAt?: string;
   emoji?: string;
   available: boolean;
   featured: boolean;
@@ -42,6 +48,7 @@ export interface Product {
   variants?: ProductVariant[];
   modifiers?: Modifier[];
   description?: string;
+  isDeal?: boolean;
 }
 
 export interface CartItem {
