@@ -6,6 +6,7 @@ import type { Product } from "@/lib/types";
 import { useState } from "react";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ImageUpload, ProductThumb } from "@/components/ImageUpload";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/products")({
@@ -64,7 +65,14 @@ function ProductsPage() {
           <tbody className="divide-y">
             {filtered.map((p) => (
               <tr key={p.id} className="hover:bg-muted/30">
-                <td className="px-4 py-2.5 flex items-center gap-2"><span className="text-xl">{p.emoji}</span> <span className="font-medium">{p.name}</span></td>
+                <td className="px-4 py-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-10 w-10 rounded-md overflow-hidden border shrink-0">
+                      <ProductThumb src={p.thumbnailUrl ?? p.imageUrl} emoji={p.emoji ?? "🍽️"} size="sm" />
+                    </div>
+                    <span className="font-medium">{p.name}</span>
+                  </div>
+                </td>
                 <td className="px-4 py-2.5 text-muted-foreground">{categories.find((c) => c.id === p.categoryId)?.name ?? "—"}</td>
                 <td className="px-4 py-2.5 font-mono text-xs">{p.sku}</td>
                 <td className="px-4 py-2.5 text-right">{money(p.cost, settings.currency)}</td>
@@ -98,27 +106,55 @@ function ProductForm({ product, onClose, onSave }: { product: Product; onClose: 
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{product.name ? "Edit product" : "New product"}</DialogTitle></DialogHeader>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Name"><input value={p.name} onChange={(e) => set("name", e.target.value)} className="input" /></Field>
-          <Field label="Emoji / Icon"><input value={p.emoji ?? ""} onChange={(e) => set("emoji", e.target.value)} className="input" /></Field>
-          <Field label="Category">
-            <select value={p.categoryId} onChange={(e) => set("categoryId", e.target.value)} className="input">
-              <option value="">Select…</option>
-              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </Field>
-          <Field label="SKU"><input value={p.sku} onChange={(e) => set("sku", e.target.value)} className="input" /></Field>
-          <Field label="Cost price (PKR)"><input type="number" value={p.cost} onChange={(e) => set("cost", +e.target.value)} className="input" /></Field>
-          <Field label="Sale price (PKR)"><input type="number" value={p.price} onChange={(e) => set("price", +e.target.value)} className="input" /></Field>
-          <Field label="Tax rate %"><input type="number" value={p.taxRate} onChange={(e) => set("taxRate", +e.target.value)} className="input" /></Field>
-          <Field label="Prep time (min)"><input type="number" value={p.prepTime} onChange={(e) => set("prepTime", +e.target.value)} className="input" /></Field>
-          <Field label="Stock"><input type="number" value={p.stock} onChange={(e) => set("stock", +e.target.value)} className="input" /></Field>
-          <div className="flex items-center gap-4 pt-6">
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={p.trackStock} onChange={(e) => set("trackStock", e.target.checked)} /> Track stock</label>
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={p.available} onChange={(e) => set("available", e.target.checked)} /> Available</label>
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={p.featured} onChange={(e) => set("featured", e.target.checked)} /> Featured</label>
+        <div className="grid grid-cols-[220px_1fr] gap-5">
+          <div className="space-y-2">
+            <div className="text-xs font-medium">Product image</div>
+            <ImageUpload
+              imageUrl={p.imageUrl}
+              thumbnailUrl={p.thumbnailUrl}
+              fallbackEmoji={p.emoji || "🍽️"}
+              kind={p.isDeal ? "deal" : "product"}
+              aspect={p.isDeal ? "wide" : "square"}
+              onChange={(v) => {
+                if (!v) {
+                  setP((s) => ({ ...s, imageUrl: undefined, thumbnailUrl: undefined, imageMimeType: undefined, imageFileSize: undefined, imageUploadedAt: undefined }));
+                } else {
+                  setP((s) => ({
+                    ...s,
+                    imageUrl: v.imageUrl,
+                    thumbnailUrl: v.thumbnailUrl,
+                    imageMimeType: v.mimeType,
+                    imageFileSize: v.bytes,
+                    imageAltText: s.name,
+                    imageUploadedAt: new Date().toISOString(),
+                  }));
+                }
+              }}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Name"><input value={p.name} onChange={(e) => set("name", e.target.value)} className="input" /></Field>
+            <Field label="Emoji fallback"><input value={p.emoji ?? ""} onChange={(e) => set("emoji", e.target.value)} className="input" placeholder="🍔" /></Field>
+            <Field label="Category">
+              <select value={p.categoryId} onChange={(e) => set("categoryId", e.target.value)} className="input">
+                <option value="">Select…</option>
+                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </Field>
+            <Field label="SKU"><input value={p.sku} onChange={(e) => set("sku", e.target.value)} className="input" /></Field>
+            <Field label="Cost price (PKR)"><input type="number" value={p.cost} onChange={(e) => set("cost", +e.target.value)} className="input" /></Field>
+            <Field label="Sale price (PKR)"><input type="number" value={p.price} onChange={(e) => set("price", +e.target.value)} className="input" /></Field>
+            <Field label="Tax rate %"><input type="number" value={p.taxRate} onChange={(e) => set("taxRate", +e.target.value)} className="input" /></Field>
+            <Field label="Prep time (min)"><input type="number" value={p.prepTime} onChange={(e) => set("prepTime", +e.target.value)} className="input" /></Field>
+            <Field label="Stock"><input type="number" value={p.stock} onChange={(e) => set("stock", +e.target.value)} className="input" /></Field>
+            <div className="flex items-center gap-3 pt-6 flex-wrap col-span-2">
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={p.trackStock} onChange={(e) => set("trackStock", e.target.checked)} /> Track stock</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={p.available} onChange={(e) => set("available", e.target.checked)} /> Available</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={p.featured} onChange={(e) => set("featured", e.target.checked)} /> Featured</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!p.isDeal} onChange={(e) => set("isDeal", e.target.checked)} /> Deal / Combo</label>
+            </div>
           </div>
         </div>
         <div className="flex justify-end gap-2">
