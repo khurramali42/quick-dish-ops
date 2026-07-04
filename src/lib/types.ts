@@ -8,6 +8,8 @@ export interface Category {
   icon: string;
   sortOrder: number;
   active: boolean;
+  imageUrl?: string;
+  thumbnailUrl?: string;
 }
 
 export interface ProductVariant {
