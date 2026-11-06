@@ -1,0 +1,46 @@
+name: Restaurant POS viewport checks
+on:
+  push:
+    branches: [ui/pos-fixed-checkout-and-polish]
+    paths: [".github/workflows/pos-viewport-check.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  responsive:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install and build app
+        run: |
+          bun install --frozen-lockfile
+          bun test
+          bun run build
+      - name: Install Playwright browser
+        run: |
+          python3 -m pip install --break-system-packages playwright==1.56.0
+          python3 -m playwright install --with-deps chromium
+      - name: Run production server
+        run: |
+          PORT=3000 bun run start > /tmp/pos-ui-server.log 2>&1 &
+          for n in $(seq 1 40); do
+            curl -sf http://127.0.0.1:3000/ -o /dev/null && exit 0
+            sleep 2
+          done
+          cat /tmp/pos-ui-server.log
+          exit 1
+      - name: Check visible total with long carts and phone navigation
+        run: python3 tests/pos-viewport-check.py
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: pos-responsive-preview
+          path: /tmp/pos-ui-screens/*.png
+          if-no-files-found: ignore
+      - name: Show server logs if browser test fails
+        if: failure()
+        run: cat /tmp/pos-ui-server.log || true
