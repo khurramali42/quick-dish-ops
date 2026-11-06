@@ -21,7 +21,7 @@ def test_pos(browser, width, height, mobile=False):
     if mobile:
         page.get_by_role("button", name=re.compile(r"^Order \(")).click()
         page.get_by_role("button", name="Open navigation").click()
-        page.get_by_role("button", name="Close navigation").first.click()
+        page.get_by_role("button", name="Close navigation").last.click()
     line_list = page.get_by_label("Order line items")
     charge = page.get_by_role("button", name=re.compile("Charge"))
     assert charge.is_visible(), f"Charge action hidden at {width}x{height}"
