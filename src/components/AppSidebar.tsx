@@ -28,7 +28,7 @@ export function AppSidebar() {
   const { settings, darkMode, toggleDark } = useStore();
 
   return (
-    <aside className="sticky top-0 hidden h-dvh w-[206px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex xl:w-[228px]">
+    <aside className="sticky top-0 hidden h-dvh w-[206px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex xl:w-[228px]">
       <div className="flex items-center gap-3 border-b border-sidebar-border px-4 py-5">
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 text-brand">
           <ChefHat className="h-7 w-7" />
@@ -83,7 +83,7 @@ export function MobileNavigation() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <div className="z-30 flex h-14 shrink-0 items-center gap-3 border-b bg-card px-3 md:hidden">
+      <div className="z-30 flex h-14 shrink-0 items-center gap-3 border-b bg-card px-3 lg:hidden">
         <button type="button" aria-label="Open navigation" aria-expanded={open} onClick={() => setOpen(true)} className="flex h-10 w-10 items-center justify-center rounded-lg border hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring">
           <Menu className="h-5 w-5" />
         </button>
@@ -91,7 +91,7 @@ export function MobileNavigation() {
         <Link to="/pos" className="rounded-lg bg-brand-gradient px-3 py-2 text-xs font-semibold text-brand-foreground">Open POS</Link>
       </div>
       {open && (
-        <div className="fixed inset-0 z-50 md:hidden">
+        <div className="fixed inset-0 z-50 lg:hidden">
           <button type="button" aria-label="Close navigation" onClick={() => setOpen(false)} className="absolute inset-0 h-full w-full bg-black/60" />
           <aside aria-label="Mobile navigation" className="relative flex h-full w-[min(82vw,310px)] flex-col bg-sidebar text-sidebar-foreground shadow-2xl">
             <div className="flex items-center justify-between gap-3 border-b border-sidebar-border px-4 py-4">
