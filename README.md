@@ -81,5 +81,8 @@ This project is intended for **learning, testing, demos and source-code review**
 - [Security policy](SECURITY.md)
 - [Contributing guide](CONTRIBUTING.md)
 - [MIT License](LICENSE)
+- [Third-party copyright and license notices](THIRD_PARTY_NOTICES.md)
 
-Original screenshots remain available in the repository. Device-framed promotional mockups have been deliberately removed.
+Original screenshots remain available in the repository.
+
+Historical commits document the development provenance and may include original tool/template references. Public Git history is intentionally preserved; release code and browser branding are independent. Device-framed promotional mockups have been deliberately removed.
