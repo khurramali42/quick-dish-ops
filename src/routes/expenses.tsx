@@ -29,7 +29,7 @@ function ExpensesPage() {
       />
 
       <div className="card-elevated overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="table-scroll"><table className="w-full text-sm">
           <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
             <tr><th className="text-left px-4 py-2">Date</th><th className="text-left px-4 py-2">Category</th><th className="text-left px-4 py-2">Paid to</th><th className="text-left px-4 py-2">Method</th><th className="text-right px-4 py-2">Amount</th></tr>
           </thead>
@@ -45,7 +45,7 @@ function ExpensesPage() {
             ))}
             {expenses.length === 0 && <tr><td colSpan={5} className="text-center text-muted-foreground py-16">No expenses recorded.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
