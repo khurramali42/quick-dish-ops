@@ -1,0 +1,35 @@
+name: Branding and application build
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Check source contains no builder branding
+        run: |
+          if grep -RniE 'lovable|lovable[.]dev' \
+              --include='*.ts' --include='*.tsx' --include='*.json' \
+              --include='*.toml' --include='*.md' --include='*.lock' \
+              --exclude-dir=.git .; then
+            echo 'Unexpected old branding reference in source'
+            exit 1
+          fi
+          test -f public/favicon.svg
+          test ! -f public/favicon.ico
+      - name: Install from checked-in lockfile
+        run: bun install --frozen-lockfile
+      - name: Build application
+        run: bun run build
