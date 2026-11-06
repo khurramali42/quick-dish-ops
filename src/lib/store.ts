@@ -67,6 +67,7 @@ interface State {
   addExpense: (e: Omit<Expense, "id">) => void;
   updateSettings: (s: Partial<Settings>) => void;
   refundOrder: (id: string) => void;
+  setKitchenStatus: (id: string, status: "new" | "preparing" | "ready" | "served") => void;
   resetAll: () => void;
 }
 
@@ -196,7 +197,7 @@ export const useStore = create<State>()(
         const customer = customers.find((c) => c.id === customerId);
         const order: Order = {
           id: shortId("O"),
-          invoiceNo: "INV-" + Date.now().toString().slice(-8),
+          invoiceNo: `INV-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${shortId().slice(0, 6)}`,
           createdAt: todayISO(),
           cashier: currentCashier,
           customerId,
@@ -215,6 +216,7 @@ export const useStore = create<State>()(
           change: Math.max(0, paid - t.total),
           paymentMethod: method,
           status: "completed",
+          kitchenStatus: "new",
         };
         // deduct stock
         const nextProducts = products.map((p) => {
@@ -261,16 +263,30 @@ export const useStore = create<State>()(
       deleteSupplier: (id) => set({ suppliers: get().suppliers.filter((s) => s.id !== id) }),
 
       addPurchase: (p) => {
-        const purchase: Purchase = { ...p, id: shortId("P"), invoiceNo: "PO-" + Date.now().toString().slice(-8) };
+        if (!p.items.length || !p.items.every((item) => item.productId && Number.isInteger(item.qty) && item.qty > 0 && Number.isFinite(item.cost) && item.cost >= 0 && get().products.some((product) => product.id === item.productId))) {
+          throw new Error("Select valid products and positive whole-number purchase quantities.");
+        }
+        if (!get().suppliers.some((supplier) => supplier.id === p.supplierId)) throw new Error("Select a valid supplier.");
+        if (!Number.isFinite(p.total) || p.total < 0 || !Number.isFinite(p.paid) || p.paid < 0 || p.paid > p.total) {
+          throw new Error("Invalid purchase totals or paid amount.");
+        }
+        const calculated = p.items.reduce((sum, item) => sum + item.qty * item.cost, 0);
+        if (Math.abs(calculated - p.total) > 0.01) throw new Error("Purchase total does not match line items.");
+        const purchase: Purchase = { ...p, id: shortId("P"), invoiceNo: `PO-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${shortId().slice(0, 6)}` };
         // increase stock
         const products = get().products.map((prod) => {
-          const item = p.items.find((i) => i.productId === prod.id);
-          return item ? { ...prod, stock: prod.stock + item.qty } : prod;
+          const received = p.items.filter((i) => i.productId === prod.id).reduce((sum, i) => sum + i.qty, 0);
+          return received ? { ...prod, stock: prod.stock + received } : prod;
         });
         set({ purchases: [purchase, ...get().purchases], products });
       },
       addExpense: (e) => set({ expenses: [{ ...e, id: shortId("E") }, ...get().expenses] }),
       updateSettings: (s) => set({ settings: { ...get().settings, ...s } }),
+      setKitchenStatus: (id, status) => set({
+        orders: get().orders.map((order) =>
+          order.id === id && order.status === "completed" ? { ...order, kitchenStatus: status } : order,
+        ),
+      }),
       refundOrder: (id) => {
         const { orders, products, customers } = get();
         const order = orders.find((o) => o.id === id);

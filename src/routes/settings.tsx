@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppLayout, PageHeader } from "@/components/AppLayout";
 import { useStore } from "@/lib/store";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Download, Upload, RotateCcw } from "lucide-react";
 import type { Settings } from "@/lib/types";
@@ -13,17 +13,71 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsPage() {
   const { settings, updateSettings, resetAll, products, categories, customers, orders } = useStore();
+  const importRef = useRef<HTMLInputElement>(null);
   const [s, setS] = useState<Settings>(settings);
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => setS((p) => ({ ...p, [k]: v }));
 
   const exportAll = () => {
-    const data = JSON.stringify({ products, categories, customers, orders, settings }, null, 2);
-    const blob = new Blob([data], { type: "application/json" });
+    const state = useStore.getState();
+    const data = JSON.stringify({
+      format: "spice-pos-browser-backup", version: 1, exportedAt: new Date().toISOString(),
+      data: {
+        products: state.products, categories: state.categories,
+        customers: state.customers, suppliers: state.suppliers,
+        orders: state.orders, purchases: state.purchases,
+        expenses: state.expenses, settings: state.settings,
+      },
+    }, null, 2);
+    const url = URL.createObjectURL(new Blob([data], { type: "application/json" }));
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
+    a.href = url;
     a.download = `spice-pos-backup-${Date.now()}.json`;
+    document.body.appendChild(a);
     a.click();
-    toast.success("Backup downloaded");
+    a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast.success("Complete local data backup downloaded");
+  };
+
+  const importBackup = async (file?: File) => {
+    if (!file) return;
+    try {
+      if (file.size > 20 * 1024 * 1024) throw new Error("Backup file is too large (maximum 20 MB).");
+      const value: unknown = JSON.parse(await file.text());
+      if (!value || typeof value !== "object") throw new Error("Invalid backup format.");
+      const backup = value as Record<string, unknown>;
+      const data = backup.data;
+      if (backup.format !== "spice-pos-browser-backup" || backup.version !== 1 || !data || typeof data !== "object") {
+        throw new Error("Unsupported backup. Export a fresh backup from Settings first.");
+      }
+      const records = data as Record<string, unknown>;
+      const keys = ["products", "categories", "customers", "suppliers", "orders", "purchases", "expenses"] as const;
+      if (!keys.every((key) => Array.isArray(records[key])) || !records.settings || typeof records.settings !== "object") {
+        throw new Error("Backup is missing required restaurant data.");
+      }
+      const profile = records.settings as Record<string, unknown>;
+      if (typeof profile.businessName !== "string" || !["58mm", "80mm", "A4"].includes(String(profile.receiptSize))) {
+        throw new Error("Backup business profile is invalid.");
+      }
+      if (!confirm("Replace this browser's products, orders, stock, purchases, customers and settings with the selected backup? Download a backup of current data first.")) return;
+      useStore.setState({
+        products: records.products as typeof products,
+        categories: records.categories as typeof categories,
+        customers: records.customers as typeof customers,
+        suppliers: records.suppliers as ReturnType<typeof useStore.getState>["suppliers"],
+        orders: records.orders as typeof orders,
+        purchases: records.purchases as ReturnType<typeof useStore.getState>["purchases"],
+        expenses: records.expenses as ReturnType<typeof useStore.getState>["expenses"],
+        settings: records.settings as Settings,
+        cart: [], heldOrders: [], billDiscount: 0, table: undefined,
+      });
+      setS(records.settings as Settings);
+      toast.success("Backup restored to this browser.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not import backup.");
+    } finally {
+      if (importRef.current) importRef.current.value = "";
+    }
   };
 
   return (
@@ -67,9 +121,11 @@ function SettingsPage() {
         <div className="space-y-4">
           <div className="card-elevated p-6">
             <h3 className="font-semibold mb-3">Backup & Data</h3>
+            <p className="mb-3 text-xs leading-5 text-muted-foreground">Records are saved in this browser only. Export regularly and store the JSON file privately. Import replaces existing local data.</p>
             <div className="space-y-2">
               <button onClick={exportAll} className="w-full flex items-center gap-2 justify-center px-4 py-2 rounded-lg border text-sm hover:bg-accent"><Download className="h-4 w-4" /> Export backup (JSON)</button>
-              <button onClick={() => toast.info("CSV/Excel import UI coming soon")} className="w-full flex items-center gap-2 justify-center px-4 py-2 rounded-lg border text-sm hover:bg-accent"><Upload className="h-4 w-4" /> Import data</button>
+              <input ref={importRef} type="file" accept=".json,application/json" className="sr-only" aria-label="Choose POS backup" onChange={(e) => void importBackup(e.target.files?.[0])} />
+              <button onClick={() => importRef.current?.click()} className="w-full flex items-center gap-2 justify-center px-4 py-2 rounded-lg border text-sm hover:bg-accent"><Upload className="h-4 w-4" /> Restore JSON backup</button>
               <button onClick={() => { if (confirm("Reset ALL local data? This cannot be undone.")) resetAll(); }} className="w-full flex items-center gap-2 justify-center px-4 py-2 rounded-lg border border-destructive text-destructive text-sm hover:bg-destructive/5"><RotateCcw className="h-4 w-4" /> Reset all data</button>
             </div>
           </div>

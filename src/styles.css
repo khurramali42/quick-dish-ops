@@ -206,3 +206,18 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+
+/* Receipt preview and native browser printing, no popup window or unreliable timeout. */
+.receipt-paper { width: 100%; max-width: 80mm; font-variant-numeric: tabular-nums; }
+#receipt-print-root { display: none; }
+@media print {
+  @page { size: auto; margin: 0; }
+  html, body { width: auto !important; height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; background: #fff !important; }
+  body > *:not(#receipt-print-root) { display: none !important; }
+  #receipt-print-root { display: block !important; position: static !important; width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; background: #fff !important; color: #000 !important; }
+  #receipt-print-root .receipt-paper { display: block !important; width: 80mm !important; max-width: 100% !important; min-height: 0 !important; margin: 0 !important; padding: 3mm !important; color: #000 !important; background: #fff !important; box-shadow: none !important; font-size: 10px !important; line-height: 1.45 !important; print-color-adjust: exact; }
+  #receipt-print-root[data-paper="58mm"] .receipt-paper { width: 58mm !important; padding: 2mm !important; font-size: 9px !important; }
+  #receipt-print-root[data-paper="A4"] .receipt-paper { width: 190mm !important; padding: 10mm !important; font-size: 12px !important; }
+  #receipt-print-root .receipt-paper tr { break-inside: avoid; }
+}
