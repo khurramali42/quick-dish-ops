@@ -58,26 +58,22 @@ export function CartReviewDialog({ open, onClose, onCheckout }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(value) => { if (!value) close(); }}>
-      <DialogContent className="flex h-[min(92dvh,820px)] w-[min(96vw,1100px)] max-w-[1100px] flex-col gap-0 overflow-hidden p-0">
-        <DialogHeader className="shrink-0 border-b bg-gradient-to-r from-orange-50 via-amber-50/40 to-card px-4 py-4 pr-12 dark:from-orange-950/25 dark:via-card sm:px-6">
-          <DialogTitle className="text-2xl font-extrabold">Full Order Review</DialogTitle>
-          <p className="text-sm text-muted-foreground">Check items, quantities and prices before checkout.</p>
-          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-orange-200 bg-orange-50 p-3 shadow-sm dark:border-orange-900 dark:bg-orange-950/25">
+      <DialogContent className="flex h-[min(96dvh,960px)] w-[min(98vw,1180px)] max-w-[1180px] flex-col gap-0 overflow-hidden p-0">
+        <DialogHeader className="shrink-0 border-b bg-gradient-to-r from-orange-50 via-amber-50/40 to-card px-4 py-2.5 pr-12 dark:from-orange-950/25 dark:via-card sm:px-5">
+          <DialogTitle className="text-xl font-extrabold">Full Order Review</DialogTitle>
+          <div className="mt-1 grid grid-cols-2 gap-2">
+            <div className="flex items-center justify-between rounded-xl border border-orange-200 bg-orange-50 px-4 py-2 dark:border-orange-900 dark:bg-orange-950/25">
               <p className="text-xs font-bold uppercase tracking-wide text-orange-700 dark:text-orange-300">Products</p>
-              <p className="mt-1 text-3xl font-extrabold tabular-nums">{displayedItems.length}</p>
+              <p className="text-2xl font-extrabold tabular-nums">{displayedItems.length}</p>
             </div>
-            <div className="rounded-2xl border border-sky-200 bg-sky-50 p-3 shadow-sm dark:border-sky-900 dark:bg-sky-950/25">
+            <div className="flex items-center justify-between rounded-xl border border-sky-200 bg-sky-50 px-4 py-2 dark:border-sky-900 dark:bg-sky-950/25">
               <p className="text-xs font-bold uppercase tracking-wide text-sky-700 dark:text-sky-300">Total quantity</p>
-              <p className="mt-1 text-3xl font-extrabold tabular-nums">{units}</p>
+              <p className="text-2xl font-extrabold tabular-nums">{units}</p>
             </div>
-            <div className="col-span-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 shadow-sm dark:border-amber-900 dark:bg-amber-950/25 sm:col-span-1">
-              <p className="text-xs font-bold uppercase tracking-wide text-amber-800 dark:text-amber-300">Grand total</p>
-              <p className="mt-1 text-xl font-extrabold tabular-nums sm:text-2xl">{money(totals.total, settings.currency)}</p>
-            </div>
+
           </div>
         </DialogHeader>
-        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b bg-muted/40 px-5 py-3">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b bg-muted/40 px-4 py-2">
           <span className="text-sm font-semibold">{editing ? "Editing order: Save Changes to apply" : "Order details"}</span>
           {editing ? (
             <div className="flex gap-2">
@@ -90,22 +86,22 @@ export function CartReviewDialog({ open, onClose, onCheckout }: Props) {
             </button>
           )}
         </div>
-        <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overscroll-contain bg-slate-50/80 p-3 dark:bg-background sm:p-5">
+        <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overscroll-contain bg-slate-50/80 p-2.5 dark:bg-background sm:p-3">
           {displayedItems.length === 0 ? (
             <div className="p-12 text-center text-base text-muted-foreground">No items in this order.</div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {displayedItems.map((item, index) => {
                 const product = products.find((p) => p.id === item.productId);
                 const lineAmount = Math.max(0, item.unitPrice * item.qty - item.discount);
                 return (
-                  <div key={item.lineId} className="overflow-hidden rounded-2xl border border-orange-100 bg-white p-4 shadow-[0_2px_16px_rgba(99,50,20,0.07)] dark:border-orange-900/50 dark:bg-card sm:p-5">
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-[minmax(0,1fr)_150px_155px_170px] sm:items-center">
-                      <div className="col-span-2 min-w-0 rounded-xl border border-orange-100 bg-orange-50/70 p-3 dark:border-orange-900/40 dark:bg-orange-950/25 sm:col-span-1">
-                        <div className="break-words text-base font-extrabold leading-snug sm:text-lg"><span className="mr-2 inline-flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-200">{index + 1}</span>{item.name}</div>
+                  <div key={item.lineId} className="overflow-hidden rounded-xl border border-orange-100 bg-white p-2.5 shadow-sm dark:border-orange-900/50 dark:bg-card sm:p-3">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1fr)_145px_155px_165px] sm:items-center">
+                      <div className="col-span-2 min-w-0 rounded-lg border border-orange-100 bg-orange-50/70 px-3 py-2 dark:border-orange-900/40 dark:bg-orange-950/25 sm:col-span-1">
+                        <div className="break-words text-base font-extrabold leading-snug sm:text-lg"><span className="mr-2 inline-flex h-7 w-7 items-center justify-center rounded-md bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-200">{index + 1}</span>{item.name}</div>
                         <div className="mt-1 text-sm text-muted-foreground">Tax {item.taxRate}%</div>
                       </div>
-                      <div className="rounded-xl border border-sky-200 bg-sky-50 p-3 dark:border-sky-900 dark:bg-sky-950/25">
+                      <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 dark:border-sky-900 dark:bg-sky-950/25">
                         <span className="mb-1 block text-xs font-bold uppercase text-sky-700 dark:text-sky-300">Quantity</span>
                         {editing ? (
                           <div className="flex items-center rounded-lg border">
@@ -115,7 +111,7 @@ export function CartReviewDialog({ open, onClose, onCheckout }: Props) {
                           </div>
                         ) : <span className="inline-flex rounded-lg bg-white px-4 py-2 text-2xl font-extrabold tabular-nums shadow-sm dark:bg-card">× {item.qty}</span>}
                       </div>
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-secondary">
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-secondary">
                         <div className="text-xs font-bold uppercase text-muted-foreground">Unit price</div>
                         <div className="mt-1 text-base font-bold tabular-nums">{money(item.unitPrice, settings.currency)}</div>
                         {editing ? (
@@ -124,13 +120,13 @@ export function CartReviewDialog({ open, onClose, onCheckout }: Props) {
                           </label>
                         ) : item.discount > 0 && <div className="mt-1 text-sm text-muted-foreground">Discount: {money(item.discount, settings.currency)}</div>}
                       </div>
-                      <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/25">
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-900 dark:bg-amber-950/25">
                         <span className="mb-1 block text-xs font-bold uppercase text-amber-800 dark:text-amber-300">Line total</span>
                         <span className="break-words text-lg font-extrabold tabular-nums">{money(lineAmount, settings.currency)}</span>
                       </div>
                     </div>
                     {editing ? (
-                      <div className="mt-4 flex flex-wrap items-end gap-3 rounded-xl border border-orange-100 bg-slate-50 p-3 dark:border-orange-900/40 dark:bg-secondary">
+                      <div className="mt-2 flex flex-wrap items-end gap-2 rounded-lg border border-orange-100 bg-slate-50 p-2 dark:border-orange-900/40 dark:bg-secondary">
                         <label className="min-w-0 flex-1 text-xs text-muted-foreground">Kitchen note
                           <input value={item.note ?? ""} onChange={(event) => changeItem(item.lineId, { note: event.target.value })} placeholder="Optional instructions" className="mt-1 h-10 w-full rounded-lg border bg-background px-3 text-sm" />
                         </label>
@@ -143,14 +139,19 @@ export function CartReviewDialog({ open, onClose, onCheckout }: Props) {
             </div>
           )}
         </div>
-        <div className="shrink-0 border-t bg-card p-4 shadow-[0_-8px_24px_-20px_rgba(0,0,0,0.35)] sm:px-6">
-          <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-4">
-            <div><span className="text-muted-foreground">Subtotal</span><div className="font-semibold tabular-nums">{money(totals.subtotal, settings.currency)}</div></div>
-            <div><span className="text-muted-foreground">Discounts</span><div className="font-semibold tabular-nums">{money(totals.itemDiscount + totals.appliedBillDiscount, settings.currency)}</div></div>
-            <div><span className="text-muted-foreground">Tax & service</span><div className="font-semibold tabular-nums">{money(totals.tax + totals.serviceCharge, settings.currency)}</div></div>
-            <div><span className="text-muted-foreground">Grand Total</span><div className="text-xl font-extrabold tabular-nums">{money(totals.total, settings.currency)}</div></div>
+        <div className="shrink-0 border-t bg-card px-4 py-3 shadow-[0_-8px_24px_-20px_rgba(0,0,0,0.35)]">
+          <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-1 text-sm">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
+              <span>Subtotal <strong className="text-foreground tabular-nums">{money(totals.subtotal, settings.currency)}</strong></span>
+              <span>Discount <strong className="text-foreground tabular-nums">{money(totals.itemDiscount + totals.appliedBillDiscount, settings.currency)}</strong></span>
+              <span>Tax & service <strong className="text-foreground tabular-nums">{money(totals.tax + totals.serviceCharge, settings.currency)}</strong></span>
+            </div>
+            <div className="flex items-center gap-2 rounded-xl bg-orange-50 px-3 py-2 text-orange-900 dark:bg-orange-950/30 dark:text-orange-100">
+              <span className="text-sm font-bold">Grand total</span>
+              <span className="text-xl font-extrabold tabular-nums">{money(totals.total, settings.currency)}</span>
+            </div>
           </div>
-          <div className="mt-4 flex flex-wrap justify-end gap-2">
+          <div className="mt-2 flex flex-wrap justify-end gap-2">
             <button type="button" onClick={close} className="min-h-11 rounded-lg border px-5 text-sm font-semibold">{editing ? "Discard & Close" : "Close"}</button>
             <button type="button" disabled={editing || cart.length === 0} onClick={() => { onClose(); onCheckout(); }} className="flex min-h-11 items-center gap-2 rounded-lg bg-brand-gradient px-6 text-sm font-bold text-brand-foreground disabled:opacity-50">
               <CreditCard className="h-4 w-4" /> Continue to Checkout
