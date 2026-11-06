@@ -5,7 +5,7 @@ import { money, formatDateTime } from "@/lib/format";
 import type { OrderType, PaymentMethod, Product } from "@/lib/types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Search, X, Plus, Minus, Trash2, Pause, Play, Printer, Percent, CreditCard,
+  Search, X, Plus, Minus, ChevronLeft, ChevronRight, Trash2, Pause, Play, Printer, Percent, CreditCard,
   Utensils, Bike, ShoppingBag, Truck, Keyboard, User, StickyNote,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -43,6 +43,7 @@ function POSScreen() {
   const [receipt, setReceipt] = useState<Order | null>(null);
   const [mobilePane, setMobilePane] = useState<"menu" | "cart">("menu");
   const searchRef = useRef<HTMLInputElement>(null);
+  const categoryScrollRef = useRef<HTMLDivElement>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -143,12 +144,20 @@ function POSScreen() {
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <div className={mobilePane === "menu" ? "flex min-h-0 min-w-0 flex-1 overflow-hidden md:flex" : "hidden min-h-0 min-w-0 flex-1 overflow-hidden md:flex"}>
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-          {/* Horizontal category menu follows the reference tablet design. */}
-          <div aria-label="Product categories" className="pos-menu-tabs scrollbar-thin flex shrink-0 items-center gap-1.5 overflow-x-auto overscroll-x-contain border-b bg-card px-2 py-2 sm:px-3">
-            <CatBtn active={activeCategory === "all"} onClick={() => setCategory("all")} icon="🍽️" label="All Items" />
-            {categories.filter((c) => c.active).map((c) => (
-              <CatBtn key={c.id} active={activeCategory === c.id} onClick={() => setCategory(c.id)} icon={c.icon} label={c.name} />
-            ))}
+          {/* Category filters have a visible themed horizontal scrollbar and accessible arrow controls. */}
+          <div className="flex min-w-0 shrink-0 items-stretch border-b bg-card">
+            <button type="button" aria-label="Scroll categories left" onClick={() => categoryScrollRef.current?.scrollBy({ left: -280, behavior: "smooth" })} className="shrink-0 border-r px-1.5 text-brand hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring sm:px-2">
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <div ref={categoryScrollRef} aria-label="Product categories" tabIndex={0} className="pos-menu-tabs flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto overscroll-x-contain px-2 py-2 sm:px-3">
+              <CatBtn active={activeCategory === "all"} onClick={() => setCategory("all")} icon="🍽️" label="All Items" />
+              {categories.filter((c) => c.active).map((c) => (
+                <CatBtn key={c.id} active={activeCategory === c.id} onClick={() => setCategory(c.id)} icon={c.icon} label={c.name} />
+              ))}
+            </div>
+            <button type="button" aria-label="Scroll categories right" onClick={() => categoryScrollRef.current?.scrollBy({ left: 280, behavior: "smooth" })} className="shrink-0 border-l px-1.5 text-brand hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring sm:px-2">
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
 
           {/* Product grid */}
