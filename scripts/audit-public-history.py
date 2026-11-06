@@ -16,10 +16,10 @@ PATTERNS = {
     "Supabase secret key": re.compile(r"sb_secret_[A-Za-z0-9_-]{12,}"),
     "Stripe live secret key": re.compile(r"sk_live_[A-Za-z0-9]{12,}"),
     "Google API key": re.compile(r"AIza[0-9A-Za-z_-]{35}"),
-    "Private key header": re.compile(r"-----BEGIN\\s+(?:RSA\\s+|EC\\s+|OPENSSH\\s+)?PRIVATE\\s+KEY-----"),
+    "Private key header": re.compile(r"-----BEGIN\s+(?:RSA\s+|EC\s+|OPENSSH\s+)?PRIVATE\s+KEY-----"),
 }
 SENSITIVE_PATH = re.compile(
-    r"(^|/)(?:\\.env(?:\\..*)?|[^/]*\\.(?:pem|p12|pfx|key|sqlite3?|db|sql|dump)|backups?/.*)$",
+    r"(^|/)(?:\.env(?:\..*)?|[^/]*\.(?:pem|p12|pfx|key|sqlite3?|db|sql|dump)|backups?/.*)$",
     re.IGNORECASE,
 )
 
@@ -29,7 +29,7 @@ def git(*args: str) -> str:
 
 
 def main() -> int:
-    tracked = git("ls-files", "-z").split("\\0")
+    tracked = git("ls-files", "-z").split(chr(0))
     offending = [path for path in tracked if path and SENSITIVE_PATH.search(path)]
     if offending:
         for path in offending:
