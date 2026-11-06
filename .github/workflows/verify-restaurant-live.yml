@@ -1,0 +1,28 @@
+name: Verify restaurant production routes
+on:
+  push:
+    branches: [ops/verify-restaurant-live-release]
+    paths: [".github/workflows/verify-restaurant-live.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  routes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - name: Verify production Dashboard, POS, Orders, Kitchen and Settings
+        shell: bash
+        run: |
+          set -euo pipefail
+          for route in / /pos /orders /kitchen /purchases /settings; do
+            url="https://quick-dish-ops.vercel.app${route}"
+            code="$(curl --retry 2 --retry-all-errors --max-time 30 -sSL -o /tmp/rest-page.html -w '%{http_code}' "$url")"
+            echo "$route => HTTP $code"
+            test "$code" = "200"
+            if grep -qiE '(Vercel Authentication|Authentication Required|Application error|This page didn.t load)' /tmp/rest-page.html; then
+              echo "Unexpected auth or error response for $route"
+              exit 1
+            fi
+            grep -qi '<html' /tmp/rest-page.html
+          done
