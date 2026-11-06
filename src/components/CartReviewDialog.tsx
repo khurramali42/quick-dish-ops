@@ -62,11 +62,11 @@ export function CartReviewDialog({ open, onClose, onCheckout }: Props) {
         <DialogHeader className="shrink-0 border-b bg-gradient-to-r from-orange-50 via-amber-50/40 to-card px-4 py-2.5 pr-12 dark:from-orange-950/25 dark:via-card sm:px-5">
           <DialogTitle className="text-xl font-extrabold">Full Order Review</DialogTitle>
           <div className="mt-1 grid grid-cols-2 gap-2">
-            <div className="flex items-center justify-between rounded-xl border border-orange-200 bg-orange-50 px-4 py-2 dark:border-orange-900 dark:bg-orange-950/25">
+            <div className="flex items-center justify-between rounded-xl border border-orange-200 bg-orange-50 px-4 py-2 dark:border-orange-900 dark:bg-accent">
               <p className="text-xs font-bold uppercase tracking-wide text-orange-700 dark:text-orange-300">Products</p>
               <p className="text-2xl font-extrabold tabular-nums">{displayedItems.length}</p>
             </div>
-            <div className="flex items-center justify-between rounded-xl border border-sky-200 bg-sky-50 px-4 py-2 dark:border-sky-900 dark:bg-sky-950/25">
+            <div className="flex items-center justify-between rounded-xl border border-sky-200 bg-sky-50 px-4 py-2 dark:border-sky-900 dark:bg-secondary">
               <p className="text-xs font-bold uppercase tracking-wide text-sky-700 dark:text-sky-300">Total quantity</p>
               <p className="text-2xl font-extrabold tabular-nums">{units}</p>
             </div>
@@ -81,7 +81,7 @@ export function CartReviewDialog({ open, onClose, onCheckout }: Props) {
               <button type="button" onClick={save} className="min-h-11 rounded-lg bg-brand-gradient px-4 text-sm font-semibold text-brand-foreground">Save Changes</button>
             </div>
           ) : (
-            <button type="button" onClick={() => { setDraft(cart.map((item) => ({ ...item }))); setEditing(true); }} className="flex min-h-11 items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 text-sm font-bold text-orange-800 hover:bg-orange-100 dark:border-orange-900 dark:bg-orange-950/30 dark:text-orange-200">
+            <button type="button" onClick={() => { setDraft(cart.map((item) => ({ ...item }))); setEditing(true); }} className="flex min-h-11 items-center gap-2 rounded-xl border border-orange-200 bg-orange-50 px-4 text-sm font-bold text-orange-800 hover:bg-orange-100 dark:border-orange-900 dark:bg-accent dark:text-orange-200">
               <Pencil className="h-4 w-4" /> Edit Order
             </button>
           )}
@@ -97,11 +97,11 @@ export function CartReviewDialog({ open, onClose, onCheckout }: Props) {
                 return (
                   <div key={item.lineId} className="overflow-hidden rounded-xl border border-orange-100 bg-white p-2.5 shadow-sm dark:border-orange-900/50 dark:bg-card sm:p-3">
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1fr)_145px_155px_165px] sm:items-center">
-                      <div className="col-span-2 min-w-0 rounded-lg border border-orange-100 bg-orange-50/70 px-3 py-2 dark:border-orange-900/40 dark:bg-orange-950/25 sm:col-span-1">
+                      <div className="col-span-2 min-w-0 rounded-lg border border-orange-100 bg-orange-50/70 px-3 py-2 dark:border-orange-900/40 dark:bg-accent sm:col-span-1">
                         <div className="break-words text-base font-extrabold leading-snug sm:text-lg"><span className="mr-2 inline-flex h-7 w-7 items-center justify-center rounded-md bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-200">{index + 1}</span>{item.name}</div>
                         <div className="mt-1 text-sm text-muted-foreground">Tax {item.taxRate}%</div>
                       </div>
-                      <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 dark:border-sky-900 dark:bg-sky-950/25">
+                      <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 dark:border-sky-900 dark:bg-secondary">
                         <span className="mb-1 block text-xs font-bold uppercase text-sky-700 dark:text-sky-300">Quantity</span>
                         {editing ? (
                           <div className="flex items-center rounded-lg border">
@@ -111,7 +111,7 @@ export function CartReviewDialog({ open, onClose, onCheckout }: Props) {
                           </div>
                         ) : <span className="inline-flex rounded-lg bg-white px-4 py-2 text-2xl font-extrabold tabular-nums shadow-sm dark:bg-card">× {item.qty}</span>}
                       </div>
-                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-secondary">
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-border dark:bg-secondary">
                         <div className="text-xs font-bold uppercase text-muted-foreground">Unit price</div>
                         <div className="mt-1 text-base font-bold tabular-nums">{money(item.unitPrice, settings.currency)}</div>
                         {editing ? (
@@ -120,7 +120,7 @@ export function CartReviewDialog({ open, onClose, onCheckout }: Props) {
                           </label>
                         ) : item.discount > 0 && <div className="mt-1 text-sm text-muted-foreground">Discount: {money(item.discount, settings.currency)}</div>}
                       </div>
-                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-900 dark:bg-amber-950/25">
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-900 dark:bg-secondary">
                         <span className="mb-1 block text-xs font-bold uppercase text-amber-800 dark:text-amber-300">Line total</span>
                         <span className="break-words text-lg font-extrabold tabular-nums">{money(lineAmount, settings.currency)}</span>
                       </div>
@@ -146,7 +146,7 @@ export function CartReviewDialog({ open, onClose, onCheckout }: Props) {
               <span>Discount <strong className="text-foreground tabular-nums">{money(totals.itemDiscount + totals.appliedBillDiscount, settings.currency)}</strong></span>
               <span>Tax & service <strong className="text-foreground tabular-nums">{money(totals.tax + totals.serviceCharge, settings.currency)}</strong></span>
             </div>
-            <div className="flex items-center gap-2 rounded-xl bg-orange-50 px-3 py-2 text-orange-900 dark:bg-orange-950/30 dark:text-orange-100">
+            <div className="flex items-center gap-2 rounded-xl bg-orange-50 px-3 py-2 text-orange-900 dark:bg-accent dark:text-orange-100">
               <span className="text-sm font-bold">Grand total</span>
               <span className="text-xl font-extrabold tabular-nums">{money(totals.total, settings.currency)}</span>
             </div>
