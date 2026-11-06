@@ -49,7 +49,7 @@ function ProductsPage() {
             {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
-        <table className="w-full text-sm">
+        <div className="table-scroll"><table className="w-full text-sm">
           <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
             <tr>
               <th className="text-left px-4 py-2">Item</th>
@@ -91,7 +91,7 @@ function ProductsPage() {
             ))}
             {filtered.length === 0 && <tr><td colSpan={8} className="text-center text-muted-foreground py-10">No products found.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       {edit && <ProductForm product={edit} onClose={() => setEdit(null)} onSave={(p) => { upsertProduct(p); toast.success("Saved"); setEdit(null); }} />}
