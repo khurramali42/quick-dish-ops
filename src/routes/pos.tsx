@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ReceiptDialog } from "@/components/ReceiptDialog";
+import { CartReviewDialog } from "@/components/CartReviewDialog";
 import { ProductThumb } from "@/components/ImageUpload";
 import type { Order } from "@/lib/types";
 
@@ -38,6 +39,7 @@ function POSScreen() {
   } = useStore();
   const totals = useCartTotals();
   const [payOpen, setPayOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [heldOpen, setHeldOpen] = useState(false);
   const [receipt, setReceipt] = useState<Order | null>(null);
@@ -194,12 +196,13 @@ function POSScreen() {
           <section aria-label="Current order" className={mobilePane === "cart" ? "flex min-h-0 w-full min-w-0 shrink-0 flex-col overflow-hidden border-l bg-card md:flex md:w-[310px] lg:w-[340px] xl:w-[380px] 2xl:w-[400px]" : "hidden min-h-0 w-full min-w-0 shrink-0 flex-col overflow-hidden border-l bg-card md:flex md:w-[310px] lg:w-[340px] xl:w-[380px] 2xl:w-[400px]"}>
             <div className="flex shrink-0 items-center justify-between border-b px-4 py-3.5">
               <div>
-                <div className="font-semibold">Current Order</div>
+                <div className="text-base font-bold">Current Order</div>
                 <div className="text-xs text-muted-foreground">
                   {orderType}{table ? ` · ${table}` : ""} · {cart.reduce((n, item) => n + item.qty, 0)} units
                 </div>
               </div>
-              <div className="flex gap-1">
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => setReviewOpen(true)} className="mr-1 rounded-lg bg-accent px-2.5 py-2 text-sm font-bold text-brand hover:bg-orange-100">View All</button>
                 <IconBtn title="Hold (F3)" onClick={() => { if (cart.length) { holdOrder(); toast.success("Order held"); } }}><Pause className="h-4 w-4" /></IconBtn>
                 <IconBtn title="Held (F4)" onClick={() => setHeldOpen(true)}>
                   <Play className="h-4 w-4" />
@@ -216,11 +219,11 @@ function POSScreen() {
                   Cart is empty. Tap an item to add.
                 </div>
               ) : cart.map((item) => (
-                <div key={item.lineId} className="rounded-xl border bg-background p-3 shadow-[0_1px_2px_rgba(0,0,0,0.025)]">
+                <div key={item.lineId} className="rounded-xl border bg-background p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.025)]">
                   <div className="flex justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="text-sm font-medium truncate">{item.name}</div>
-                      <div className="text-xs text-muted-foreground">{money(item.unitPrice, settings.currency)} · Tax {item.taxRate}%</div>
+                      <div className="text-base font-bold leading-snug break-words">{item.name}</div>
+                      <div className="mt-1 text-sm text-muted-foreground">{money(item.unitPrice, settings.currency)} · Tax {item.taxRate}%</div>
                     </div>
                     <button onClick={() => removeLine(item.lineId)} className="text-muted-foreground hover:text-destructive">
                       <X className="h-4 w-4" />
@@ -228,20 +231,20 @@ function POSScreen() {
                   </div>
                   <div className="mt-2 flex items-center justify-between">
                     <div className="flex items-center border rounded-md">
-                      <button onClick={() => item.qty > 1 ? updateQty(item.lineId, item.qty - 1) : removeLine(item.lineId)} className="w-8 h-8 flex items-center justify-center hover:bg-accent"><Minus className="h-3 w-3" /></button>
-                      <span className="w-8 text-center text-sm font-medium">{item.qty}</span>
-                      <button onClick={() => updateQty(item.lineId, item.qty + 1)} className="w-8 h-8 flex items-center justify-center hover:bg-accent"><Plus className="h-3 w-3" /></button>
+                      <button onClick={() => item.qty > 1 ? updateQty(item.lineId, item.qty - 1) : removeLine(item.lineId)} className="w-10 h-10 flex items-center justify-center hover:bg-accent"><Minus className="h-3 w-3" /></button>
+                      <span className="w-10 text-center text-base font-extrabold tabular-nums">{item.qty}</span>
+                      <button onClick={() => updateQty(item.lineId, item.qty + 1)} className="w-10 h-10 flex items-center justify-center hover:bg-accent"><Plus className="h-3 w-3" /></button>
                     </div>
-                    <div className="text-sm font-semibold">{money(item.unitPrice * item.qty - item.discount, settings.currency)}</div>
+                    <div className="text-base font-bold tabular-nums">{money(item.unitPrice * item.qty - item.discount, settings.currency)}</div>
                   </div>
                   <div className="mt-2 flex gap-2">
                     <div className="relative flex-1">
                       <Percent className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                      <input type="number" value={item.discount || ""} onChange={(e) => updateItemDiscount(item.lineId, +e.target.value)} placeholder="Discount" className="w-full h-8 pl-7 pr-2 rounded-md border bg-background text-xs" />
+                      <input type="number" value={item.discount || ""} onChange={(e) => updateItemDiscount(item.lineId, +e.target.value)} placeholder="Discount" className="w-full h-10 pl-7 pr-2 rounded-md border bg-background text-sm" />
                     </div>
                     <div className="relative flex-1">
                       <StickyNote className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                      <input value={item.note ?? ""} onChange={(e) => updateNote(item.lineId, e.target.value)} placeholder="Note" className="w-full h-8 pl-7 pr-2 rounded-md border bg-background text-xs" />
+                      <input value={item.note ?? ""} onChange={(e) => updateNote(item.lineId, e.target.value)} placeholder="Note" className="w-full h-10 pl-7 pr-2 rounded-md border bg-background text-sm" />
                     </div>
                   </div>
                 </div>
@@ -274,6 +277,7 @@ function POSScreen() {
         </div>
       </div>
 
+      <CartReviewDialog open={reviewOpen} onClose={() => setReviewOpen(false)} onCheckout={() => setPayOpen(true)} />
       <PaymentDialog open={payOpen} onClose={() => setPayOpen(false)} onDone={(o) => { setPayOpen(false); setReceipt(o); }} />
       <ReceiptDialog order={receipt} onClose={() => setReceipt(null)} />
       <HeldDialog open={heldOpen} onClose={() => setHeldOpen(false)} onRecall={(id: string) => { recallOrder(id); setHeldOpen(false); }} onDelete={deleteHeld} held={heldOrders} />

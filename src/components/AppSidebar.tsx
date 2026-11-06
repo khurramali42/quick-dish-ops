@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   LayoutDashboard, ShoppingCart, Package, Tag, Boxes, ClipboardList, Users,
-  Truck, ReceiptText, BarChart3, ChefHat, Settings, Wallet, Moon, Sun, Menu, X,
+  Truck, ReceiptText, BarChart3, ChefHat, Settings, Wallet, Moon, Sun, Menu, X, Maximize, Minimize,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -79,7 +79,7 @@ export function AppSidebar() {
 }
 
 /** Compact navigation for phones and narrow tablets. */
-export function MobileNavigation() {
+export function MobileNavigation({ fullscreen, onToggleFullscreen }: { fullscreen: boolean; onToggleFullscreen: () => void }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const darkMode = useStore((state) => state.darkMode);
   const toggleDark = useStore((state) => state.toggleDark);
@@ -91,6 +91,9 @@ export function MobileNavigation() {
           <Menu className="h-5 w-5" />
         </button>
         <span className="min-w-0 flex-1 truncate font-display text-sm font-extrabold">Spice Kitchen <span className="text-brand">POS</span></span>
+        <button type="button" onClick={onToggleFullscreen} title={fullscreen ? "Exit fullscreen" : "Fullscreen"} aria-label={fullscreen ? "Exit fullscreen" : "Enter fullscreen"} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border hover:bg-accent">
+          {fullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+        </button>
         <Link to="/pos" className="rounded-lg bg-brand-gradient px-3 py-2 text-xs font-semibold text-brand-foreground">Open POS</Link>
       </div>
       {open && (

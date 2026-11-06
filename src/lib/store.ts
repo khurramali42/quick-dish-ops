@@ -47,6 +47,7 @@ interface State {
   updateNote: (lineId: string, note: string) => void;
   removeLine: (lineId: string) => void;
   clearCart: () => void;
+  replaceCart: (items: CartItem[]) => void;
 
   holdOrder: () => void;
   recallOrder: (id: string) => void;
@@ -71,7 +72,7 @@ interface State {
   resetAll: () => void;
 }
 
-function cartTotals(cart: CartItem[], billDiscount: number, serviceChargePct: number, deliveryCharge = 0) {
+export function cartTotals(cart: CartItem[], billDiscount: number, serviceChargePct: number, deliveryCharge = 0) {
   const subtotal = cart.reduce((s, i) => s + i.unitPrice * i.qty, 0);
   const itemDiscount = cart.reduce((s, i) => s + Math.min(i.unitPrice * i.qty, Math.max(0, i.discount)), 0);
   const preBill = Math.max(0, subtotal - itemDiscount);
@@ -157,6 +158,20 @@ export const useStore = create<State>()(
       }),
       removeLine: (lineId) => set({ cart: get().cart.filter((c) => c.lineId !== lineId) }),
       clearCart: () => set({ cart: [], billDiscount: 0, table: undefined }),
+      replaceCart: (items) => {
+        const products = get().products;
+        for (const item of items) {
+          if (!Number.isInteger(item.qty) || item.qty < 1 || !Number.isFinite(item.discount) || item.discount < 0 || item.discount > item.unitPrice * item.qty) {
+            throw new Error("Invalid quantity or discount in order review.");
+          }
+          const product = products.find((p) => p.id === item.productId);
+          if (!product || !product.available) throw new Error(`Item ${item.name} is unavailable.`);
+          if (product.trackStock && items.filter((i) => i.productId === product.id).reduce((sum, i) => sum + i.qty, 0) > product.stock) {
+            throw new Error(`Insufficient stock for ${product.name}.`);
+          }
+        }
+        set({ cart: items.map((item) => ({ ...item })) });
+      },
 
       holdOrder: () => {
         const { cart, orderType, table, customerId } = get();
