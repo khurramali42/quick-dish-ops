@@ -1,0 +1,48 @@
+name: Browser receipt and kitchen workflow
+on:
+  push:
+    branches: [fix/receipt-kitchen-purchase-operations]
+    paths:
+      - ".github/workflows/receipt-kitchen-e2e.yml"
+      - "tests/receipt-kitchen-e2e.py"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  e2e:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Run operations tests and build
+        run: |
+          bun install --frozen-lockfile
+          bun test
+          bun run build
+      - name: Install Chromium
+        run: |
+          python3 -m pip install --break-system-packages playwright==1.56.0
+          python3 -m playwright install --with-deps chromium
+      - name: Start production server
+        run: |
+          PORT=3000 bun run start > /tmp/receipt-server.log 2>&1 &
+          for n in $(seq 1 40); do
+            curl -fsS http://127.0.0.1:3000/ -o /dev/null && exit 0
+            sleep 2
+          done
+          cat /tmp/receipt-server.log
+          exit 1
+      - name: Test receipt printing and kitchen state in browser
+        run: python3 tests/receipt-kitchen-e2e.py
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: receipt-print-test
+          path: /tmp/receipt-tests/*.png
+          if-no-files-found: ignore
+      - name: Show server log on failure
+        if: failure()
+        run: cat /tmp/receipt-server.log || true
