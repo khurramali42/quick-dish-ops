@@ -1,0 +1,55 @@
+name: Build authentic app screenshot mockups
+
+on:
+  push:
+    branches: [docs/real-interface-device-mockups]
+    paths:
+      - ".github/workflows/build-interface-mockups.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  create-mockups:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install image composition dependencies
+        run: python -m pip install "Pillow==11.3.0"
+      - name: Compose actual screenshots in device frames
+        run: python scripts/create-screenshot-mockups.py
+      - name: Confirm three mockups include genuine screenshot content
+        run: |
+          python - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          originals=["dashboard.png","pos.png","orders.png"]
+          mockups=["overview-device-mockup.png","pos-device-mockup.png","orders-device-mockup.png"]
+          for n in originals:
+              p=Path("docs/screenshots")/n
+              assert p.exists() and p.stat().st_size>10000, f"Missing actual app capture: {p}"
+          for n in mockups:
+              p=Path("docs/mockups")/n
+              with Image.open(p) as im:
+                  assert im.size==(2400,1350), (n,im.size)
+                  assert p.stat().st_size>30000, f"Unexpectedly empty presentation {p}"
+          print("Verified real screenshots and generated device mockups")
+          PY
+      - uses: actions/upload-artifact@v6
+        with:
+          name: real-app-device-mockups
+          path: docs/mockups/*.png
+      - name: Commit generated images to this PR branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/mockups/*.png
+          if ! git diff --cached --quiet; then
+            git commit -m "docs: add real application screen device mockups [skip ci]"
+            git push origin HEAD:docs/real-interface-device-mockups
+          fi
