@@ -1,4 +1,4 @@
-name: Branding and application build
+name: Source checks and application build
 
 on:
   pull_request:
@@ -20,7 +20,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      - name: Check source contains no builder branding
+      - name: Check legacy branding is absent
         run: |
           if grep -RniE 'lovable|lovable[.]dev' \
               --include='*.ts' --include='*.tsx' --include='*.json' \

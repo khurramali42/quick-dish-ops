@@ -1,42 +1,36 @@
-# Spice Kitchen POS
+# Quick Dish Ops
 
-**A restaurant and cafe point-of-sale demo built with React, TypeScript, TanStack Start and Vite.**
+**Open-source restaurant POS and operations demo.** Explore the code, run it locally, test the workflows and contribute improvements. This GitHub repository is the distribution point; **no public hosted demo is offered**.
 
-[![Build and checkout tests](https://github.com/khurramali42/quick-dish-ops/actions/workflows/build.yml/badge.svg)](https://github.com/khurramali42/quick-dish-ops/actions/workflows/build.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Build and tests](https://github.com/khurramali42/quick-dish-ops/actions/workflows/build.yml/badge.svg)](https://github.com/khurramali42/quick-dish-ops/actions/workflows/build.yml)
+[![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> **Demo/preview software, not a hosted multi-user POS service.** Records are stored in the current browser using Zustand localStorage. The app has no login system, shared database, server-side transactions, or real payment processing. **Use fictional data only.** Deleting browser storage can permanently remove records. See [Security](SECURITY.md).
+> **Demo software, not a production restaurant system.** All orders, customers, stock and settings are kept in the current browser's local storage. There is no account login, central database, device synchronization, real payment collection or audited ledger. Use **sample data only**, never actual personal/financial records. Clearing browser data may permanently erase changes.
 
 ## Application screenshots
 
-These are **real screenshots captured from the running application**, not generated or redrawn mockups. They contain example/dummy restaurant information.
+These are authentic browser screenshots from the application, using fictional demo data. They are not AI-generated marketing mockups.
 
-### Dashboard
+| Dashboard | Point of sale |
+| --- | --- |
+| ![Dashboard](docs/screenshots/dashboard.png) | ![POS checkout](docs/screenshots/pos.png) |
 
-![Actual Spice Kitchen POS Dashboard](docs/screenshots/dashboard.png)
+![Orders screen](docs/screenshots/orders.png)
 
-### Point of sale
+## What you can explore
 
-![Actual Spice Kitchen POS checkout interface](docs/screenshots/pos.png)
+- **POS:** menu and category browsing, item search, cart, discounts, tax, checkout simulation and receipt preview/printing with 58mm, 80mm or A4 options
+- **Orders and kitchen:** order history, simulated refunds and a local kitchen board with New → Preparing → Ready → Served
+- **Products and inventory:** categories, images, product records, stock quantities and stock adjustments
+- **Purchasing:** supplier records, incoming stock and expense entries
+- **Customers and reports:** example customer records, basic sales summaries and financial snapshots
+- **Local data:** JSON export and guarded restore of browser data through Settings
 
-### Orders
+Some interfaces represent **simulated processes**, not integrations with payment terminals, accounting software, card networks or external kitchen displays.
 
-![Actual Spice Kitchen POS orders screen](docs/screenshots/orders.png)
+## Run locally
 
-## Current demo features
-
-- Point-of-sale cart, discounts, checkout simulation, and printable receipts
-- Restaurant orders and kitchen display
-- Product catalog, categories and basic stock tracking
-- Sample customers, suppliers, purchases and expense entries
-- Local sales reports and configurable business profile
-- Browser-local sample records and product image uploads
-
-**Not implemented:** real card/Easypaisa/JazzCash transactions, shared staff accounts, live multi-device synchronization, server-authoritative financial records, audited refunds, automated backups, customer privacy controls or legal/tax compliance.
-
-## Getting started
-
-Prerequisites: a recent Node.js installation and [Bun](https://bun.sh/).
+**Requirements:** [Bun](https://bun.sh/) and a current, supported Node.js release. Git is required to clone the project.
 
 ```bash
 git clone https://github.com/khurramali42/quick-dish-ops.git
@@ -45,52 +39,39 @@ bun install --frozen-lockfile
 bun run dev
 ```
 
-Open the address printed in the terminal, usually `http://localhost:5173`.
+Open the local URL shown in the terminal, usually **http://localhost:5173**. You do **not** need Supabase credentials, a payment key, or a hosted service to explore the demo.
 
-To run automated tests and create a build:
+### Tests and local build
 
 ```bash
 bun test
 bun run build
 ```
 
-To serve the production build for a **demo**:
+To run the built app locally, use `bun run start`. Browser-only functional tests are in `tests/`; GitHub Actions runs build, checkout and data-integrity checks. Manual screenshot and browser-test workflows are available for maintainers.
 
-```bash
-bun run start
-```
+## Project map
 
-The sample catalog and fictional customer data are defined in `src/lib/seed.ts`. Your browser-local changes are separate from Git and **will not synchronize** to another browser or computer.
-
-## Hosting the public demo
-
-This repository supports deployment to Vercel using the TanStack Start + Nitro framework. It includes a `vercel.json` framework declaration and does **not** need a live database or payment API token.
-
-Connect this repository to a Vercel project with framework preset **TanStack Start**, production branch `main`, and build command `bun run build`. The existing `nitro()` Vite plugin provides server rendering. Production deployment URLs should be verified by loading `/`, `/pos`, and `/orders`.
-
-The hosted app is **still a demo**: the on-screen banner warns visitors not to enter real information; each browser has isolated localStorage and no cross-device sync.
-
-## Project structure
-
-| Folder | Purpose |
+| Path | Purpose |
 | --- | --- |
-| `src/routes/` | Dashboard, POS, orders, kitchen, inventory, customers and reports |
-| `src/components/` | Application layout and reusable UI |
-| `src/lib/store.ts` | Browser-local demo state and sample checkout logic |
-| `src/lib/seed.ts` | Example restaurant catalog and fictional profiles |
-| `tests/` | POS integrity regression tests |
-| `docs/screenshots/` | Genuine app screenshots |
-| `.github/workflows/` | Build verification and optional browser screenshots |
+| `src/routes/` | POS, dashboard, kitchen, inventory, orders, products and reports |
+| `src/components/` | Shared UI, sidebar and printable receipt |
+| `src/lib/store.ts` | Zustand state, browser persistence and demo operations |
+| `src/lib/seed.ts` | Fictional restaurant catalog and starter data |
+| `src/lib/types.ts` | Data models |
+| `tests/` | Checkout, stock, kitchen, receipt and viewport checks |
+| `docs/screenshots/` | Actual interface screenshots |
 
-## Safety, limitations and contributing
+**Stack:** React, TypeScript, TanStack Start/Router, Vite, Tailwind CSS, Zustand, Bun and Nitro.
 
-This project is intended for **learning, testing, demos and source-code review**. Even with checkout regression tests, browser storage is not appropriate for real financial records or personal data. Before a commercial rollout you would need secure authentication, persistent server storage, access restrictions, validated payments, conflict handling, backup/restore, audits, and legal review.
+## Before using this for a real restaurant
 
-- [Security policy](SECURITY.md)
-- [Contributing guide](CONTRIBUTING.md)
-- [MIT License](LICENSE)
-- [Third-party copyright and license notices](THIRD_PARTY_NOTICES.md)
+This code is a starting point for development, **not a commercially certified POS**. A real deployment would need secured authentication and roles, a central transactional database, reliable backups, audit trails, privacy controls, server-side inventory and payment validation, hardware/printer testing, multi-device concurrency and jurisdiction-specific tax review. Browser storage cannot safely replace those systems.
 
-Original screenshots remain available in the repository.
+## Contributing and licensing
 
-Historical commits document the development provenance and may include original tool/template references. Public Git history is intentionally preserved; release code and browser branding are independent. Device-framed promotional mockups have been deliberately removed.
+Contributions and bug reports are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md) and the GitHub issue template. Do not submit live customer data or credentials.
+
+Distributed under the [MIT License](LICENSE), subject to third-party rights and [attribution notices](THIRD_PARTY_NOTICES.md). The project's historical commits preserve its original development provenance.
+
+**This repository is shared for source-code review and local use. Public web hosting is intentionally not being promoted.**

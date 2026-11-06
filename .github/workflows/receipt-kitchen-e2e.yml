@@ -1,10 +1,5 @@
 name: Browser receipt and kitchen workflow
 on:
-  push:
-    branches: [fix/receipt-kitchen-purchase-operations]
-    paths:
-      - ".github/workflows/receipt-kitchen-e2e.yml"
-      - "tests/receipt-kitchen-e2e.py"
   workflow_dispatch:
 permissions:
   contents: read
