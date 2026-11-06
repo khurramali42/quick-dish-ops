@@ -28,18 +28,18 @@ export function AppSidebar() {
   const { settings, darkMode, toggleDark } = useStore();
 
   return (
-    <aside className="sticky top-0 hidden h-dvh w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex xl:w-60">
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border">
-        <div className="w-10 h-10 rounded-xl bg-brand-gradient flex items-center justify-center text-xl">
-          {settings.logoEmoji}
+    <aside className="sticky top-0 hidden h-dvh w-[206px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:flex xl:w-[228px]">
+      <div className="flex items-center gap-3 border-b border-sidebar-border px-4 py-5">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 text-brand">
+          <ChefHat className="h-7 w-7" />
         </div>
         <div className="min-w-0">
-          <div className="font-display font-semibold text-sm truncate">{settings.businessName}</div>
-          <div className="text-[11px] opacity-60 truncate">{settings.branchName}</div>
+          <div className="truncate font-display text-sm font-extrabold tracking-tight">Spice Kitchen <span className="text-brand">POS</span></div>
+          <div className="truncate text-[11px] text-muted-foreground">{settings.branchName}</div>
         </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 py-4 space-y-0.5">
+      <nav className="scrollbar-thin flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {nav.map((n) => {
           const active = n.to === "/" ? pathname === "/" : pathname.startsWith(n.to);
           const Icon = n.icon;
@@ -48,11 +48,11 @@ export function AppSidebar() {
               key={n.to}
               to={n.to}
               className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all",
                 active
                   ? "bg-brand-gradient text-brand-foreground shadow-sm"
                   : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground opacity-90",
-                n.highlight && !active && "text-white/95",
+                n.highlight && !active && "text-brand",
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />
@@ -62,7 +62,7 @@ export function AppSidebar() {
         })}
       </nav>
 
-      <div className="px-3 py-3 border-t border-sidebar-border flex items-center justify-between">
+      <div className="flex items-center justify-between border-t border-sidebar-border px-3 py-3">
         <div className="text-[11px] opacity-60 px-2">v1.0 · PKR</div>
         <button
           onClick={toggleDark}
@@ -83,11 +83,11 @@ export function MobileNavigation() {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <div className="z-30 flex h-13 shrink-0 items-center gap-3 border-b bg-card px-3 md:hidden">
+      <div className="z-30 flex h-14 shrink-0 items-center gap-3 border-b bg-card px-3 md:hidden">
         <button type="button" aria-label="Open navigation" aria-expanded={open} onClick={() => setOpen(true)} className="flex h-10 w-10 items-center justify-center rounded-lg border hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring">
           <Menu className="h-5 w-5" />
         </button>
-        <span className="min-w-0 flex-1 truncate font-display text-sm font-semibold">{settings.businessName}</span>
+        <span className="min-w-0 flex-1 truncate font-display text-sm font-extrabold">Spice Kitchen <span className="text-brand">POS</span></span>
         <Link to="/pos" className="rounded-lg bg-brand-gradient px-3 py-2 text-xs font-semibold text-brand-foreground">Open POS</Link>
       </div>
       {open && (
@@ -95,7 +95,7 @@ export function MobileNavigation() {
           <button type="button" aria-label="Close navigation" onClick={() => setOpen(false)} className="absolute inset-0 h-full w-full bg-black/60" />
           <aside aria-label="Mobile navigation" className="relative flex h-full w-[min(82vw,310px)] flex-col bg-sidebar text-sidebar-foreground shadow-2xl">
             <div className="flex items-center justify-between gap-3 border-b border-sidebar-border px-4 py-4">
-              <div className="min-w-0 truncate font-display text-sm font-semibold">{settings.businessName}</div>
+              <div className="min-w-0 truncate font-display text-sm font-extrabold">Spice Kitchen <span className="text-brand">POS</span></div>
               <button type="button" aria-label="Close navigation" onClick={() => setOpen(false)} className="rounded-lg p-2 hover:bg-sidebar-accent"><X className="h-5 w-5" /></button>
             </div>
             <nav className="scrollbar-thin min-h-0 flex-1 space-y-1 overflow-y-auto p-3">
