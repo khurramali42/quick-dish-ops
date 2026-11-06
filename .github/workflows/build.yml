@@ -31,5 +31,7 @@ jobs:
           test ! -f public/favicon.ico
       - name: Install from checked-in lockfile
         run: bun install --frozen-lockfile
+      - name: Test checkout, stock and refunds
+        run: bun test
       - name: Build application
         run: bun run build
