@@ -62,6 +62,14 @@ bun run start
 
 The sample catalog and fictional customer data are defined in `src/lib/seed.ts`. Your browser-local changes are separate from Git and **will not synchronize** to another browser or computer.
 
+## Hosting the public demo
+
+This repository supports deployment to Vercel using the TanStack Start + Nitro framework. It includes a `vercel.json` framework declaration and does **not** need a live database or payment API token.
+
+Connect this repository to a Vercel project with framework preset **TanStack Start**, production branch `main`, and build command `bun run build`. The existing `nitro()` Vite plugin provides server rendering. Production deployment URLs should be verified by loading `/`, `/pos`, and `/orders`.
+
+The hosted app is **still a demo**: the on-screen banner warns visitors not to enter real information; each browser has isolated localStorage and no cross-device sync.
+
 ## Project structure
 
 | Folder | Purpose |
