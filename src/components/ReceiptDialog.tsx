@@ -1,9 +1,9 @@
 import { createPortal } from "react-dom";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import type { Order, Settings } from "@/lib/types";
 import { money, formatDateTime } from "@/lib/format";
 import { useStore } from "@/lib/store";
-import { Printer, X } from "lucide-react";
+import { Printer } from "lucide-react";
 
 /** One receipt component is used for both preview and printing. No popup is required. */
 export function ReceiptDialog({ order, onClose }: { order: Order | null; onClose: () => void }) {
@@ -20,13 +20,12 @@ export function ReceiptDialog({ order, onClose }: { order: Order | null; onClose
     <>
       <Dialog open onOpenChange={(open) => !open && onClose()}>
         <DialogContent className="flex max-h-[90dvh] max-w-sm flex-col gap-0 overflow-hidden p-0">
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b p-3">
-            <div className="min-w-0 truncate text-sm font-semibold">Receipt · {order.invoiceNo}</div>
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b py-3 pl-3 pr-12">
+            <DialogTitle className="min-w-0 truncate text-sm font-semibold">Receipt · {order.invoiceNo}</DialogTitle>
             <div className="flex shrink-0 gap-1">
               <button type="button" onClick={printReceipt} aria-label="Print receipt" className="flex items-center gap-1 rounded-md bg-brand-gradient px-3 py-2 text-xs font-semibold text-brand-foreground hover:brightness-105">
                 <Printer className="h-4 w-4" /> Print
               </button>
-              <button type="button" onClick={onClose} aria-label="Close receipt" className="rounded-md p-2 hover:bg-accent"><X className="h-4 w-4" /></button>
             </div>
           </div>
           <div className="min-h-0 overflow-y-auto bg-muted/40 p-4">
