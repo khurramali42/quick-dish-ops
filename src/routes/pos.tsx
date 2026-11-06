@@ -242,7 +242,7 @@ function POSScreen() {
                   <div className="mt-2 flex gap-2">
                     <div className="relative flex-1">
                       <Percent className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                      <input type="number" value={item.discount || ""} onChange={(e) => updateItemDiscount(item.lineId, +e.target.value)} placeholder="Discount" className="w-full h-10 pl-7 pr-2 rounded-md border bg-background text-sm" />
+                      <input type="number" value={item.discount || ""} onChange={(e) => updateItemDiscount(item.lineId, +e.target.value)} placeholder="Discount" className="h-10 w-full min-w-0 rounded-md border bg-background pl-7 pr-3 text-sm font-medium tabular-nums" />
                     </div>
                     <div className="relative flex-1">
                       <StickyNote className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
@@ -259,7 +259,7 @@ function POSScreen() {
               {totals.itemDiscount > 0 && <Row label="Item discount" value={"− " + money(totals.itemDiscount, settings.currency)} muted />}
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Bill discount</span>
-                <input type="number" value={billDiscount || ""} onChange={(e) => setBillDiscount(+e.target.value)} min={0} max={Math.max(0, totals.subtotal - totals.itemDiscount)} aria-label="Bill discount" className="h-8 w-28 rounded-md border bg-background px-2 text-right text-sm focus-visible:outline-2 focus-visible:outline-ring" />
+                <input type="number" value={billDiscount || ""} onChange={(e) => setBillDiscount(+e.target.value)} min={0} max={Math.max(0, totals.subtotal - totals.itemDiscount)} aria-label="Bill discount" className="h-10 w-32 min-w-[8rem] rounded-lg border bg-background px-3 text-right text-base font-semibold tabular-nums focus-visible:outline-2 focus-visible:outline-ring" />
               </div>
               <Row label={`Tax`} value={money(totals.tax, settings.currency)} muted />
               {totals.serviceCharge > 0 && <Row label={`Service (${settings.serviceChargePct}%)`} value={money(totals.serviceCharge, settings.currency)} muted />}
@@ -392,7 +392,7 @@ function PaymentDialog({ open, onClose, onDone }: { open: boolean; onClose: () =
               ))}
             </div>
             <label className="text-xs text-muted-foreground mt-3 block">Amount received</label>
-            <input type="number" min={0} step="0.01" value={paid} onChange={(e) => setPaid(+e.target.value)} className="w-full h-11 mt-1 rounded-lg border bg-background px-3 text-lg font-semibold" />
+            <input type="number" min={0} step="0.01" value={paid} onChange={(e) => setPaid(+e.target.value)} className="mt-1 h-12 w-full min-w-0 rounded-lg border bg-background px-4 text-lg font-semibold tabular-nums" />
             <div className="flex gap-1 mt-2 flex-wrap">
               {quick.map((v) => (
                 <button key={v} onClick={() => setPaid((p) => p + v)} className="text-xs px-2 py-1 rounded-md border hover:bg-accent">+{v}</button>
