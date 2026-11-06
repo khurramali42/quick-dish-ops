@@ -116,7 +116,7 @@ export function CartReviewDialog({ open, onClose, onCheckout }: Props) {
                         <div className="mt-1 text-base font-bold tabular-nums">{money(item.unitPrice, settings.currency)}</div>
                         {editing ? (
                           <label className="mt-1 block text-xs text-muted-foreground">Discount
-                            <input aria-label={`Discount for ${item.name}`} type="number" min={0} max={item.unitPrice * item.qty} value={item.discount} onChange={(event) => changeItem(item.lineId, { discount: Math.min(item.unitPrice * item.qty, Math.max(0, Number(event.target.value) || 0)) })} className="mt-1 h-10 w-full rounded-lg border bg-background px-2 text-sm" />
+                            <input aria-label={`Discount for ${item.name}`} type="number" min={0} max={item.unitPrice * item.qty} value={item.discount} onChange={(event) => changeItem(item.lineId, { discount: Math.min(item.unitPrice * item.qty, Math.max(0, Number(event.target.value) || 0)) })} className="mt-1 h-11 w-full min-w-0 rounded-lg border bg-background px-3 text-base font-semibold tabular-nums" />
                           </label>
                         ) : item.discount > 0 && <div className="mt-1 text-sm text-muted-foreground">Discount: {money(item.discount, settings.currency)}</div>}
                       </div>
