@@ -210,6 +210,19 @@ html {
   ::selection { background: var(--color-accent); color: var(--color-foreground); }
 }
 
+/* Consistent, readable amounts across cashier, review and admin forms.
+   Native spinner controls cover short numbers on narrow POS inputs. */
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+  font-variant-numeric: tabular-nums;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .table-scroll {
   width: 100%;
   max-width: 100%;
