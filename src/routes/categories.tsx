@@ -30,19 +30,19 @@ function CategoriesPage() {
         }
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {categories.map((c) => (
-          <div key={c.id} className="card-elevated overflow-hidden relative group">
-            <div className="aspect-square bg-gradient-to-br from-accent to-secondary">
+          <div key={c.id} className="card-elevated group relative flex min-w-0 items-center gap-3 overflow-hidden p-2.5 pr-20">
+            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-accent to-secondary sm:h-[72px] sm:w-[72px]">
               <ProductThumb src={c.thumbnailUrl ?? c.imageUrl} emoji={c.icon} />
             </div>
-            <div className="p-3 text-center">
-              <div className="font-semibold">{c.name}</div>
-              <div className="text-xs text-muted-foreground mt-0.5">{products.filter((p) => p.categoryId === c.id).length} items</div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-semibold" title={c.name}>{c.name}</div>
+              <div className="mt-1 text-xs text-muted-foreground">{products.filter((p) => p.categoryId === c.id).length} items</div>
             </div>
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 flex gap-1">
-              <button onClick={() => setEdit(c)} className="p-1.5 rounded bg-background border shadow-sm"><Pencil className="h-3 w-3" /></button>
-              <button onClick={() => { if (confirm(`Delete "${c.name}"?`)) { deleteCategory(c.id); toast.success("Deleted"); } }} className="p-1.5 rounded bg-background border shadow-sm text-destructive"><Trash2 className="h-3 w-3" /></button>
+            <div className="absolute right-2 top-1/2 flex -translate-y-1/2 gap-1 opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+              <button type="button" aria-label={`Edit ${c.name}`} onClick={() => setEdit(c)} className="rounded-lg border bg-background p-2 shadow-sm focus-visible:outline-2 focus-visible:outline-ring"><Pencil className="h-3.5 w-3.5" /></button>
+              <button type="button" aria-label={`Delete ${c.name}`} onClick={() => { if (confirm(`Delete "${c.name}"?`)) { deleteCategory(c.id); toast.success("Deleted"); } }} className="rounded-lg border bg-background p-2 text-destructive shadow-sm focus-visible:outline-2 focus-visible:outline-ring"><Trash2 className="h-3.5 w-3.5" /></button>
             </div>
           </div>
         ))}
