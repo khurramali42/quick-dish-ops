@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { ChefHat, ChevronDown, CircleUserRound, ClipboardList } from "lucide-react";
+import { CircleUserRound, ClipboardList, Info } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { AppSidebar, MobileNavigation } from "./AppSidebar";
 
 export function AppLayout({ children, fullBleed = false }: { children: ReactNode; fullBleed?: boolean }) {
-  const { settings, currentCashier } = useStore();
+  const { currentCashier } = useStore();
   return (
     <div className={fullBleed ? "flex h-dvh min-h-0 w-full overflow-hidden bg-background" : "flex min-h-dvh w-full bg-background"}>
       <AppSidebar />
@@ -13,16 +13,17 @@ export function AppLayout({ children, fullBleed = false }: { children: ReactNode
         <MobileNavigation />
         <header className="hidden h-[68px] shrink-0 items-center justify-between gap-5 border-b bg-card px-5 shadow-[0_2px_12px_rgba(52,26,12,0.03)] lg:flex xl:px-8">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-50 text-brand">
-              <ChefHat className="h-5 w-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-bold">{settings.businessName}</p>
-              <p className="truncate text-xs text-muted-foreground">{settings.branchName}</p>
-            </div>
-            <ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground lg:block" />
+            <span className="truncate text-sm font-semibold text-muted-foreground">Restaurant operations</span>
           </div>
           <div className="flex shrink-0 items-center gap-4">
+            <details className="group relative">
+              <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring">
+                <Info className="h-3.5 w-3.5" /> Demo mode
+              </summary>
+              <div role="note" className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border bg-popover p-3 text-xs leading-relaxed text-popover-foreground shadow-lg">
+                Sample data is stored only in this browser. This demo does not process actual payments or use a shared database.
+              </div>
+            </details>
             <Link to="/orders" title="View orders" aria-label="View orders" className="flex h-9 w-9 items-center justify-center rounded-full border border-transparent text-muted-foreground transition hover:border-border hover:bg-accent hover:text-brand">
               <ClipboardList className="h-5 w-5" />
             </Link>
@@ -33,13 +34,9 @@ export function AppLayout({ children, fullBleed = false }: { children: ReactNode
                 <p className="text-xs font-bold">{currentCashier}</p>
                 <p className="text-[11px] text-muted-foreground">Demo operator</p>
               </div>
-              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
             </div>
           </div>
         </header>
-        <div role="note" className="shrink-0 border-b border-orange-100 bg-orange-50/70 px-3 py-1 text-center text-[10px] font-medium leading-4 text-orange-900 dark:border-orange-900 dark:bg-orange-950/30 dark:text-orange-200">
-          LOCAL DEMO · Sample data stored in this browser · No actual payments or shared database
-        </div>
         {fullBleed ? children : <div className="min-w-0 flex-1 p-3 sm:p-5 xl:p-7">{children}</div>}
       </main>
     </div>
