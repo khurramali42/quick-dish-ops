@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import {
   LayoutDashboard, ShoppingCart, Package, Tag, Boxes, ClipboardList, Users,
   Truck, ReceiptText, BarChart3, ChefHat, Settings, Wallet, Moon, Sun, Menu, X, Maximize, Minimize,
@@ -72,10 +73,11 @@ export function AppSidebar({ collapsed = false }: { collapsed?: boolean }) {
         })}
       </nav>
 
-      {collapsed && hoveredTab && (
-        <div role="tooltip" className="pointer-events-none fixed left-[78px] z-[100] whitespace-nowrap rounded-lg bg-foreground px-3 py-2 text-xs font-semibold text-background shadow-xl" style={{ top: hoveredTab.top }}>
+      {collapsed && hoveredTab && typeof document !== "undefined" && createPortal(
+        <div role="tooltip" className="pointer-events-none fixed left-[80px] z-[9999] whitespace-nowrap rounded-lg border border-orange-200 bg-slate-950 px-3 py-2 text-sm font-semibold text-white shadow-xl dark:border-orange-700" style={{ top: hoveredTab.top }}>
           {hoveredTab.label}
-        </div>
+        </div>,
+        document.body
       )}
       <div className={cn("flex items-center border-t border-sidebar-border px-3 py-3", collapsed ? "justify-center" : "justify-between")}>
         {!collapsed && <div className="text-[11px] opacity-60 px-2">v1.0 · PKR</div>}
