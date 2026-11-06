@@ -47,7 +47,7 @@ function InventoryPage() {
             </button>
           ))}
         </div>
-        <table className="w-full text-sm">
+        <div className="table-scroll"><table className="w-full text-sm">
           <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
             <tr><th className="text-left px-4 py-2">Item</th><th className="text-right px-4 py-2">Cost</th><th className="text-right px-4 py-2">Stock</th><th className="text-right px-4 py-2">Value</th><th className="text-center px-4 py-2">Adjust</th></tr>
           </thead>
@@ -69,7 +69,7 @@ function InventoryPage() {
             ))}
             {shown.length === 0 && <tr><td colSpan={5} className="text-center text-muted-foreground py-10">Nothing to show.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </div>
     </AppLayout>
   );
