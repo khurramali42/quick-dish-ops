@@ -74,6 +74,25 @@ function RootComponent() {
       document.documentElement.classList.toggle("dark", darkMode);
     }
   }, [darkMode]);
+  // Cashier safety: wheel scrolling must never change an entered value.
+  // Blur a focused value control before the browser can apply its wheel step.
+  // Do not preventDefault: normal page/panel scrolling must still work.
+  useEffect(() => {
+    const protectWheel = () => {
+      const active = document.activeElement;
+      if (
+        active instanceof HTMLInputElement &&
+        (active.type === "number" || active.type === "range")
+      ) {
+        active.blur();
+      } else if (active instanceof HTMLSelectElement) {
+        active.blur();
+      }
+    };
+    document.addEventListener("wheel", protectWheel, { capture: true, passive: true });
+    return () => document.removeEventListener("wheel", protectWheel, true);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
