@@ -1,56 +1,85 @@
 # Spice Kitchen POS
 
-A restaurant and cafe point-of-sale interface built with React, TanStack Start, Vite and TypeScript.
+**A restaurant and cafe point-of-sale demo built with React, TypeScript, TanStack Start and Vite.**
+
+[![Build and checkout tests](https://github.com/khurramali42/quick-dish-ops/actions/workflows/build.yml/badge.svg)](https://github.com/khurramali42/quick-dish-ops/actions/workflows/build.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+> **Demo/preview software, not a hosted multi-user POS service.** Records are stored in the current browser using Zustand localStorage. The app has no login system, shared database, server-side transactions, or real payment processing. **Use fictional data only.** Deleting browser storage can permanently remove records. See [Security](SECURITY.md).
 
 ## Application screenshots
 
-Captured from the running application in headless Chromium at desktop resolution, using fictional sample data.
+These are **real screenshots captured from the running application**, not generated or redrawn mockups. They contain example/dummy restaurant information.
 
 ### Dashboard
 
-![Spice Kitchen POS dashboard](docs/screenshots/dashboard.png)
+![Actual Spice Kitchen POS Dashboard](docs/screenshots/dashboard.png)
 
 ### Point of sale
 
-![Spice Kitchen POS ordering and checkout interface](docs/screenshots/pos.png)
+![Actual Spice Kitchen POS checkout interface](docs/screenshots/pos.png)
 
 ### Orders
 
-![Spice Kitchen POS orders screen](docs/screenshots/orders.png)
+![Actual Spice Kitchen POS orders screen](docs/screenshots/orders.png)
 
-## Features
+## Current demo features
 
-- Point of sale, cart, checkout and receipts
-- Orders and kitchen operations
-- Products, categories and inventory
-- Customers, suppliers, purchases and expenses
-- Reports and business settings
+- Point-of-sale cart, discounts, checkout simulation, and printable receipts
+- Restaurant orders and kitchen display
+- Product catalog, categories and basic stock tracking
+- Sample customers, suppliers, purchases and expense entries
+- Local sales reports and configurable business profile
+- Browser-local sample records and product image uploads
 
-## Run locally
+**Not implemented:** real card/Easypaisa/JazzCash transactions, shared staff accounts, live multi-device synchronization, server-authoritative financial records, audited refunds, automated backups, customer privacy controls or legal/tax compliance.
 
-Requires Bun and a current Node.js runtime.
+## Getting started
+
+Prerequisites: a recent Node.js installation and [Bun](https://bun.sh/).
 
 ```bash
-bun install
+git clone https://github.com/khurramali42/quick-dish-ops.git
+cd quick-dish-ops
+bun install --frozen-lockfile
 bun run dev
 ```
 
-Open the local address printed by Vite.
+Open the address printed in the terminal, usually `http://localhost:5173`.
 
-For a production build:
+To run automated tests and create a build:
 
 ```bash
+bun test
 bun run build
+```
+
+To serve the production build for a **demo**:
+
+```bash
 bun run start
 ```
 
-## Important data and deployment limitations
+The sample catalog and fictional customer data are defined in `src/lib/seed.ts`. Your browser-local changes are separate from Git and **will not synchronize** to another browser or computer.
 
-This app currently uses browser-side persistent storage for its operational records and includes fictional sample data. It does **not** provide a shared database, multiple-user synchronization, robust user authentication, audit-proof payment ledger or automated cloud backups. Clearing browser storage can lose records. Test with synthetic data; do not use it as a real payment/accounting system until those features are implemented and independently verified.
+## Project structure
 
-The default UI identity is **Spice Kitchen POS**, and the example restaurant details can be edited in Settings. The tab icon is a standalone SVG stored at `public/favicon.svg`.
+| Folder | Purpose |
+| --- | --- |
+| `src/routes/` | Dashboard, POS, orders, kitchen, inventory, customers and reports |
+| `src/components/` | Application layout and reusable UI |
+| `src/lib/store.ts` | Browser-local demo state and sample checkout logic |
+| `src/lib/seed.ts` | Example restaurant catalog and fictional profiles |
+| `tests/` | POS integrity regression tests |
+| `docs/screenshots/` | Genuine app screenshots |
+| `.github/workflows/` | Build verification and optional browser screenshots |
 
-## Automated verification
+## Safety, limitations and contributing
 
-GitHub Actions verifies the application build and checkout regression tests. A separate browser workflow captured the original interface screenshots. See [the build workflow](.github/workflows/build.yml) and [screenshot workflow](.github/workflows/capture-screenshots.yml). The screenshots are documentation, not evidence of production-grade database security.
+This project is intended for **learning, testing, demos and source-code review**. Even with checkout regression tests, browser storage is not appropriate for real financial records or personal data. Before a commercial rollout you would need secure authentication, persistent server storage, access restrictions, validated payments, conflict handling, backup/restore, audits, and legal review.
 
+- [Security policy](SECURITY.md)
+- [Contributing guide](CONTRIBUTING.md)
+- [MIT License](LICENSE)
+
+Original screenshots remain available in the repository. Device-framed promotional mockups have been deliberately removed.
