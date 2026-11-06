@@ -13,10 +13,10 @@ permissions:
 
 jobs:
   screenshots:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: true
       - uses: oven-sh/setup-bun@v2
@@ -52,7 +52,7 @@ jobs:
           test -s docs/screenshots/pos.png
           test -s docs/screenshots/orders.png
       - name: Upload screenshots to GitHub Actions as fallback
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: quick-dish-app-screenshots
           path: docs/screenshots/*.png
