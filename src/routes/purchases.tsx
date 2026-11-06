@@ -42,7 +42,7 @@ function PurchasesPage() {
       />
 
       <div className="card-elevated overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="table-scroll"><table className="w-full text-sm">
           <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
             <tr><th className="text-left px-4 py-2">Invoice</th><th className="text-left px-4 py-2">Date</th><th className="text-left px-4 py-2">Supplier</th><th className="text-left px-4 py-2">Items</th><th className="text-right px-4 py-2">Total</th></tr>
           </thead>
@@ -58,7 +58,7 @@ function PurchasesPage() {
             ))}
             {purchases.length === 0 && <tr><td colSpan={5} className="text-center text-muted-foreground py-16">No purchases recorded.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
