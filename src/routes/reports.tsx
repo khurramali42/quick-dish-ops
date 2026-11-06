@@ -15,25 +15,26 @@ const COLORS = ["oklch(0.72 0.19 45)", "oklch(0.68 0.16 155)", "oklch(0.55 0.2 2
 function ReportsPage() {
   const { orders, products, expenses, settings, categories } = useStore();
 
-  const grossSales = orders.filter((o) => o.status !== "refunded").reduce((s, o) => s + o.total, 0);
-  const totalCost = orders.filter((o) => o.status !== "refunded").reduce((s, o) =>
+  const completedOrders = orders.filter((o) => o.status !== "refunded" && o.status !== "cancelled");
+  const grossSales = completedOrders.reduce((s, o) => s + o.total, 0);
+  const totalCost = completedOrders.reduce((s, o) =>
     s + o.items.reduce((c, i) => c + (products.find((p) => p.id === i.productId)?.cost ?? 0) * i.qty, 0), 0);
   const totalExpense = expenses.reduce((s, e) => s + e.amount, 0);
-  const totalTax = orders.reduce((s, o) => s + o.tax, 0);
-  const totalDiscount = orders.reduce((s, o) => s + o.itemDiscount + o.billDiscount, 0);
+  const totalTax = completedOrders.reduce((s, o) => s + o.tax, 0);
+  const totalDiscount = completedOrders.reduce((s, o) => s + o.itemDiscount + o.billDiscount, 0);
   const netProfit = grossSales - totalCost - totalExpense;
 
   const salesByCat = useMemo(() => categories.map((c) => {
-    const revenue = orders.reduce((s, o) => s + o.items.reduce((r, i) => {
+    const revenue = completedOrders.reduce((s, o) => s + o.items.reduce((r, i) => {
       const p = products.find((p) => p.id === i.productId);
       return p?.categoryId === c.id ? r + i.unitPrice * i.qty : r;
     }, 0), 0);
     return { name: c.name, revenue };
-  }).filter((x) => x.revenue > 0), [orders, products, categories]);
+  }).filter((x) => x.revenue > 0), [completedOrders, products, categories]);
 
   const byMethod = useMemo(() => {
     const m: Record<string, number> = {};
-    orders.filter((o) => o.status !== "refunded").forEach((o) => { m[o.paymentMethod] = (m[o.paymentMethod] ?? 0) + o.total; });
+    completedOrders.forEach((o) => { m[o.paymentMethod] = (m[o.paymentMethod] ?? 0) + o.total; });
     return Object.entries(m).map(([name, value]) => ({ name, value }));
   }, [orders]);
 
@@ -48,8 +49,8 @@ function ReportsPage() {
         <Stat label="Net Profit" value={money(netProfit, settings.currency)} accent />
         <Stat label="Tax Collected" value={money(totalTax, settings.currency)} />
         <Stat label="Discounts Given" value={money(totalDiscount, settings.currency)} />
-        <Stat label="Orders" value={String(orders.length)} />
-        <Stat label="Avg Ticket" value={money(orders.length ? grossSales / orders.length : 0, settings.currency)} />
+        <Stat label="Orders" value={String(completedOrders.length)} />
+        <Stat label="Avg Ticket" value={money(completedOrders.length ? grossSales / completedOrders.length : 0, settings.currency)} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
