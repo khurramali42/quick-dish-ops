@@ -31,7 +31,7 @@ with sync_playwright() as browser_api:
     assert page.evaluate("() => Array.from(document.body.children).filter(el => el.id !== 'receipt-print-root' && el.tagName !== 'SCRIPT').every(el => getComputedStyle(el).display === 'none')"), "App chrome still printed"
     page.screenshot(path=str(OUT / "receipt-print-preview.png"), full_page=True)
     page.emulate_media(media="screen")
-    page.get_by_role("button", name="Close receipt").click()
+    page.get_by_role("button", name="Close", exact=True).click()
     assert paper.count() == 0
     page.goto(BASE + "/kitchen", wait_until="networkidle")
     assert page.get_by_role("button", name="Start preparing").count() >= 1
