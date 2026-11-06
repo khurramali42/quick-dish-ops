@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type {
   CartItem, Category, Customer, Expense, Order, OrderType, PaymentMethod,
-  Product, Purchase, Settings, Supplier,
+  Product, Purchase, Settings, Supplier, ParkedOrder, ParkedOrderStatus,
 } from "./types";
 import {
   seedCategories, seedCustomers, seedProducts, seedSettings, seedSuppliers,
@@ -22,7 +22,8 @@ interface State {
 
   // POS session
   cart: CartItem[];
-  heldOrders: { id: string; at: string; cart: CartItem[]; orderType: OrderType; table?: string; customerId?: string }[];
+  heldOrders: ParkedOrder[];
+  parkedHistory: ParkedOrder[];
   activeCategory: string | "all";
   search: string;
   orderType: OrderType;
@@ -49,8 +50,10 @@ interface State {
   clearCart: () => void;
   replaceCart: (items: CartItem[]) => void;
 
-  holdOrder: () => void;
+  holdOrder: (status?: "held" | "pending-payment") => void;
   recallOrder: (id: string) => void;
+  setParkedStatus: (id: string, status: ParkedOrderStatus, reason?: string) => void;
+  removeParkedHistory: (id: string) => void;
   deleteHeld: (id: string) => void;
 
   checkout: (paid: number, method: PaymentMethod) => Order;
@@ -101,6 +104,7 @@ export const useStore = create<State>()(
 
       cart: [],
       heldOrders: [],
+      parkedHistory: [],
       activeCategory: "all",
       search: "",
       orderType: "dine-in",
@@ -173,23 +177,62 @@ export const useStore = create<State>()(
         set({ cart: items.map((item) => ({ ...item })) });
       },
 
-      holdOrder: () => {
-        const { cart, orderType, table, customerId } = get();
-        if (!cart.length) return;
+      holdOrder: (status = "held") => {
+        const { cart, orderType, table, customerId, billDiscount, currentCashier, heldOrders } = get();
+        if (!cart.length) throw new Error("Add products before parking an order.");
+        if (status !== "held" && status !== "pending-payment") throw new Error("Invalid parked order status.");
+        const snapshot: ParkedOrder = {
+          id: shortId("H"), at: todayISO(), updatedAt: todayISO(),
+          cart: cart.map((item) => ({ ...item, modifiers: item.modifiers.map((mod) => ({ ...mod })) })),
+          orderType, table, customerId, billDiscount, cashier: currentCashier, status,
+        };
         set({
-          heldOrders: [...get().heldOrders, { id: shortId("H"), at: todayISO(), cart, orderType, table, customerId }],
+          heldOrders: [...heldOrders, snapshot],
           cart: [], billDiscount: 0, table: undefined,
         });
       },
       recallOrder: (id) => {
-        const held = get().heldOrders.find((h) => h.id === id);
-        if (!held) return;
+        const { cart, heldOrders } = get();
+        if (cart.length) throw new Error("Current cart is not empty. Hold or complete it before resuming another order.");
+        const held = heldOrders.find((h) => h.id === id);
+        if (!held || (held.status !== undefined && held.status !== "held" && held.status !== "pending-payment")) {
+          throw new Error("This order is no longer available to resume.");
+        }
+        const products = get().products;
+        for (const item of held.cart) {
+          const product = products.find((p) => p.id === item.productId);
+          if (!product || !product.available) throw new Error(`Product ${item.name} is no longer available.`);
+          if (product.trackStock && held.cart.filter((i) => i.productId === item.productId).reduce((n, i) => n + i.qty, 0) > product.stock) {
+            throw new Error(`Not enough stock for ${item.name}.`);
+          }
+        }
         set({
-          cart: held.cart, orderType: held.orderType, table: held.table, customerId: held.customerId,
-          heldOrders: get().heldOrders.filter((h) => h.id !== id),
+          cart: held.cart.map((item) => ({ ...item, modifiers: item.modifiers.map((mod) => ({ ...mod })) })),
+          orderType: held.orderType, table: held.table, customerId: held.customerId,
+          billDiscount: held.billDiscount ?? 0,
+          heldOrders: heldOrders.filter((h) => h.id !== id),
         });
       },
-      deleteHeld: (id) => set({ heldOrders: get().heldOrders.filter((h) => h.id !== id) }),
+      setParkedStatus: (id, status, reason) => {
+        const { heldOrders, parkedHistory } = get();
+        const item = heldOrders.find((h) => h.id === id);
+        if (!item) throw new Error("Order was not found in the active queue.");
+        if (status === "cancelled" && !(reason ?? "").trim()) throw new Error("Please enter a cancellation reason.");
+        if (!["held", "pending-payment", "cancelled", "ignored"].includes(status)) throw new Error("Invalid status.");
+        const updated: ParkedOrder = { ...item, status, reason: reason?.trim(), updatedAt: todayISO() };
+        if (status === "cancelled" || status === "ignored") {
+          set({ heldOrders: heldOrders.filter((h) => h.id !== id), parkedHistory: [updated, ...parkedHistory] });
+        } else {
+          set({ heldOrders: heldOrders.map((h) => h.id === id ? updated : h) });
+        }
+      },
+      removeParkedHistory: (id) => {
+        set({ parkedHistory: get().parkedHistory.filter((h) => h.id !== id) });
+      },
+      deleteHeld: (id) => {
+        // Legacy action: archive rather than silently deleting an order.
+        get().setParkedStatus(id, "ignored", "Removed from active queue");
+      },
 
       checkout: (paid, method) => {
         const { cart, billDiscount, settings, orderType, table, customerId, customers, currentCashier, products } = get();

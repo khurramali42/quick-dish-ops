@@ -64,6 +64,22 @@ export interface CartItem {
   taxRate: number;
 }
 
+export type ParkedOrderStatus = "held" | "pending-payment" | "cancelled" | "ignored";
+
+export interface ParkedOrder {
+  id: string;
+  at: string;
+  updatedAt?: string;
+  cart: CartItem[];
+  orderType: OrderType;
+  table?: string;
+  customerId?: string;
+  billDiscount?: number;
+  status?: ParkedOrderStatus; // Legacy held orders have no status.
+  reason?: string;
+  cashier?: string;
+}
+
 export interface Customer {
   id: string;
   name: string;
