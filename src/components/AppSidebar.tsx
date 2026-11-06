@@ -25,7 +25,9 @@ const nav = [
 
 export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { settings, darkMode, toggleDark } = useStore();
+  const branchName = useStore((state) => state.settings.branchName);
+  const darkMode = useStore((state) => state.darkMode);
+  const toggleDark = useStore((state) => state.toggleDark);
 
   return (
     <aside className="sticky top-0 hidden h-dvh w-[206px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex xl:w-[228px]">
@@ -35,7 +37,7 @@ export function AppSidebar() {
         </div>
         <div className="min-w-0">
           <div className="truncate font-display text-sm font-extrabold tracking-tight">Spice Kitchen <span className="text-brand">POS</span></div>
-          <div className="truncate text-[11px] text-muted-foreground">{settings.branchName}</div>
+          <div className="truncate text-[11px] text-muted-foreground">{branchName}</div>
         </div>
       </div>
 
@@ -79,7 +81,8 @@ export function AppSidebar() {
 /** Compact navigation for phones and narrow tablets. */
 export function MobileNavigation() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const { settings, darkMode, toggleDark } = useStore();
+  const darkMode = useStore((state) => state.darkMode);
+  const toggleDark = useStore((state) => state.toggleDark);
   const [open, setOpen] = useState(false);
   return (
     <>
