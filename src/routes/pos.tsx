@@ -365,7 +365,7 @@ function PaymentDialog({ open, onClose, onDone }: { open: boolean; onClose: () =
             }}
             className="px-5 h-10 rounded-lg bg-brand-gradient text-brand-foreground font-medium disabled:opacity-50"
           >
-            Confirm & Print
+            Complete sale
           </button>
         </div>
       </DialogContent>
