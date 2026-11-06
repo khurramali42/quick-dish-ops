@@ -29,6 +29,23 @@ jobs:
           fi
           test -f public/favicon.svg
           test ! -f public/favicon.ico
+      - name: Public source safety checks
+        run: |
+          if git ls-files | grep -Ei '(^|/)(\.env($|\.)|backups/|exports/|[^/]+\.(pem|p12|pfx|sqlite3?|db|sql)$)'; then
+            echo "Sensitive file type tracked in repository"
+            exit 1
+          fi
+          if grep -RniE '(ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|sb_secret_[A-Za-z0-9_-]{12,}|sk_live_[A-Za-z0-9]{12,}|-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----)' \
+              src docs scripts public --include='*.ts' --include='*.tsx' --include='*.js' --include='*.md' --include='*.json' --include='*.svg'; then
+            echo "Potential credential in tracked project files"
+            exit 1
+          fi
+          test ! -e docs/mockups/overview-device-mockup.png
+      - name: Confirm required public repository documents
+        run: |
+          for file in README.md LICENSE SECURITY.md CONTRIBUTING.md; do
+            test -s "$file"
+          done
       - name: Install from checked-in lockfile
         run: bun install --frozen-lockfile
       - name: Test checkout, stock and refunds

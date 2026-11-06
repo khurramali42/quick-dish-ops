@@ -1,0 +1,31 @@
+name: Bug report
+description: Report reproducible issues using fictional test data
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: "Do not post passwords, customer data, payment details, private backups, or sensitive vulnerabilities in public issues."
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and expected behavior
+      placeholder: Explain what happened and what should happen
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce using sample data
+      placeholder: "1. Open POS. 2. Add sample item. 3. ..."
+    validations:
+      required: true
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      options: [Chrome, Edge, Firefox, Safari, Other]
+  - type: textarea
+    id: logs
+    attributes:
+      label: Safe error details (optional)
+      description: Remove identifying information and secrets before posting

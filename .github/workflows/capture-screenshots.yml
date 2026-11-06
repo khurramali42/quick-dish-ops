@@ -1,15 +1,11 @@
-name: Capture real POS screenshots
+name: Capture application screenshots
 
+# Manual developer tool only. Original verified screenshots are already checked in.
 on:
-  push:
-    branches:
-      - audit/pos-screenshots-and-safety
-    paths:
-      - ".github/workflows/capture-screenshots.yml"
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   screenshots:
@@ -17,63 +13,37 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
-        with:
-          persist-credentials: true
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      - name: Install and build application
+      - name: Install and build
         run: |
           bun install --frozen-lockfile
           bun run build
-      - name: Install headless Chromium
-        run: |
-          npx --yes playwright@1.56.1 install --with-deps chromium
-      - name: Start real application server
+      - name: Install browser
+        run: npx --yes playwright@1.56.1 install --with-deps chromium
+      - name: Start demo server
         run: |
           PORT=3000 bun run start > /tmp/quick-dish-server.log 2>&1 &
-          echo $! > /tmp/quick-dish.pid
-          for attempt in $(seq 1 40); do
-            if curl -fsS http://127.0.0.1:3000/ -o /tmp/quick-dish-index.html; then exit 0; fi
+          for n in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:3000/ -o /dev/null; then exit 0; fi
             sleep 2
           done
           cat /tmp/quick-dish-server.log
           exit 1
-      - name: Verify dashboard, POS and orders respond successfully
-        run: |
-          for route in / /pos /orders; do
-            curl --fail --silent --show-error "http://127.0.0.1:3000$route" -o /tmp/quick-dish-route.html
-            if grep -qi "This page didn't load" /tmp/quick-dish-route.html; then
-              echo "Unexpected application error page at $route"
-              exit 1
-            fi
-          done
-      - name: Capture desktop application screenshots
+      - name: Capture original UI
         run: |
           mkdir -p docs/screenshots
-          npx --yes playwright@1.56.1 screenshot --browser chromium --viewport-size "1440,900" --wait-for-timeout 3500 \
-            http://127.0.0.1:3000/ docs/screenshots/dashboard.png
-          npx --yes playwright@1.56.1 screenshot --browser chromium --viewport-size "1600,1000" --wait-for-timeout 3500 \
-            http://127.0.0.1:3000/pos docs/screenshots/pos.png
-          npx --yes playwright@1.56.1 screenshot --browser chromium --viewport-size "1440,900" --wait-for-timeout 3500 \
-            http://127.0.0.1:3000/orders docs/screenshots/orders.png
+          npx --yes playwright@1.56.1 screenshot --browser chromium --viewport-size "1440,900" --wait-for-timeout 3500 http://127.0.0.1:3000/ docs/screenshots/dashboard.png
+          npx --yes playwright@1.56.1 screenshot --browser chromium --viewport-size "1600,1000" --wait-for-timeout 3500 http://127.0.0.1:3000/pos docs/screenshots/pos.png
+          npx --yes playwright@1.56.1 screenshot --browser chromium --viewport-size "1440,900" --wait-for-timeout 3500 http://127.0.0.1:3000/orders docs/screenshots/orders.png
           test -s docs/screenshots/dashboard.png
           test -s docs/screenshots/pos.png
           test -s docs/screenshots/orders.png
-      - name: Upload screenshots to GitHub Actions as fallback
-        uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v6
         with:
-          name: quick-dish-app-screenshots
+          name: actual-application-screenshots
           path: docs/screenshots/*.png
-      - name: Add screenshots to feature branch
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/screenshots/
-          if ! git diff --cached --quiet; then
-            git commit -m "docs: add actual browser screenshots [skip ci]"
-            git push origin HEAD:audit/pos-screenshots-and-safety
-          fi
       - name: Show server logs on failure
         if: failure()
         run: cat /tmp/quick-dish-server.log || true
