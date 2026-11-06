@@ -132,10 +132,15 @@ function POSScreen() {
           </div>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 flex min-h-0">
+        <div className="flex shrink-0 gap-2 border-b bg-card px-3 py-2 lg:hidden">
+          <button type="button" onClick={() => setMobilePane("menu")} className={mobilePane === "menu" ? "flex-1 rounded-lg bg-brand-gradient px-3 py-2 text-sm font-semibold text-brand-foreground" : "flex-1 rounded-lg bg-muted px-3 py-2 text-sm font-semibold text-foreground"}>Menu</button>
+          <button type="button" onClick={() => setMobilePane("cart")} className={mobilePane === "cart" ? "flex-1 rounded-lg bg-brand-gradient px-3 py-2 text-sm font-semibold text-brand-foreground" : "flex-1 rounded-lg bg-muted px-3 py-2 text-sm font-semibold text-foreground"}>Order ({cart.reduce((n, item) => n + item.qty, 0)})</button>
+        </div>
+        {/* Every pane has an independent scroll area. */}
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          <div className={mobilePane === "menu" ? "flex min-h-0 min-w-0 flex-1 overflow-hidden lg:flex" : "hidden min-h-0 min-w-0 flex-1 overflow-hidden lg:flex"}>
           {/* Categories */}
-          <div className="w-40 shrink-0 border-r bg-card overflow-y-auto scrollbar-thin py-3 px-2 space-y-1">
+          <div aria-label="Product categories" className="scrollbar-thin w-[94px] shrink-0 space-y-1 overflow-y-auto overscroll-contain border-r bg-card px-1.5 py-2 sm:w-[116px] sm:px-2 xl:w-[136px]">
             <CatBtn active={activeCategory === "all"} onClick={() => setCategory("all")} icon="🍽️" label="All Items" />
             {categories.filter((c) => c.active).map((c) => (
               <CatBtn key={c.id} active={activeCategory === c.id} onClick={() => setCategory(c.id)} icon={c.icon} label={c.name} />
@@ -152,8 +157,9 @@ function POSScreen() {
             </div>
           </div>
 
-          {/* Cart */}
-          <div className="w-[380px] shrink-0 flex flex-col border-l bg-card">
+          </div>
+          {/* Current order with pinned totals. */}
+          <section aria-label="Current order" className={mobilePane === "cart" ? "flex min-h-0 w-full min-w-0 shrink-0 flex-col overflow-hidden border-l bg-card lg:flex lg:w-[340px] xl:w-[380px] 2xl:w-[400px]" : "hidden min-h-0 w-full min-w-0 shrink-0 flex-col overflow-hidden border-l bg-card lg:flex lg:w-[340px] xl:w-[380px] 2xl:w-[400px]"}>
             <div className="flex shrink-0 items-center justify-between border-b px-4 py-3">
               <div>
                 <div className="font-semibold">Current Order</div>
@@ -232,7 +238,7 @@ function POSScreen() {
                 <CreditCard className="h-4 w-4" /> Charge · {money(totals.total, settings.currency)}
               </button>
             </div>
-          </div>
+          </section>
         </div>
       </div>
 
