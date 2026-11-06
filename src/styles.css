@@ -46,28 +46,28 @@
 }
 
 :root {
-  --radius: 0.75rem;
+  --radius: 0.85rem;
 
   /* Surfaces */
-  --background: oklch(0.98 0.005 95);
-  --foreground: oklch(0.18 0.02 260);
+  --background: oklch(0.985 0.006 75);
+  --foreground: oklch(0.215 0.04 34);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.02 260);
+  --card-foreground: oklch(0.215 0.04 34);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.02 260);
+  --popover-foreground: oklch(0.215 0.04 34);
 
   /* Brand — deep charcoal primary + vibrant orange accent (restaurant energy) */
-  --primary: oklch(0.22 0.02 260);
+  --primary: oklch(0.56 0.21 35);
   --primary-foreground: oklch(0.98 0 0);
-  --brand: oklch(0.65 0.19 40);
+  --brand: oklch(0.57 0.22 35);
   --brand-foreground: oklch(0.99 0 0);
 
-  --secondary: oklch(0.96 0.008 260);
+  --secondary: oklch(0.966 0.008 80);
   --secondary-foreground: oklch(0.22 0.02 260);
-  --muted: oklch(0.96 0.008 260);
-  --muted-foreground: oklch(0.5 0.02 260);
-  --accent: oklch(0.95 0.02 45);
-  --accent-foreground: oklch(0.35 0.12 45);
+  --muted: oklch(0.966 0.008 80);
+  --muted-foreground: oklch(0.49 0.017 55);
+  --accent: oklch(0.965 0.029 48);
+  --accent-foreground: oklch(0.41 0.15 35);
 
   --destructive: oklch(0.6 0.22 27);
   --destructive-foreground: oklch(0.99 0 0);
@@ -76,20 +76,20 @@
   --warning: oklch(0.8 0.15 85);
   --warning-foreground: oklch(0.25 0.05 85);
 
-  --border: oklch(0.92 0.006 260);
-  --input: oklch(0.92 0.006 260);
-  --ring: oklch(0.72 0.19 45);
+  --border: oklch(0.922 0.011 73);
+  --input: oklch(0.922 0.011 73);
+  --ring: oklch(0.62 0.20 35);
 
   /* Sidebar — deep espresso */
-  --sidebar: oklch(0.2 0.015 260);
-  --sidebar-foreground: oklch(0.85 0.01 260);
-  --sidebar-accent: oklch(0.28 0.02 260);
-  --sidebar-accent-foreground: oklch(0.99 0 0);
-  --sidebar-border: oklch(0.28 0.02 260);
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.25 0.03 40);
+  --sidebar-accent: oklch(0.97 0.018 56);
+  --sidebar-accent-foreground: oklch(0.41 0.15 35);
+  --sidebar-border: oklch(0.92 0.013 73);
 
-  --shadow-card: 0 1px 2px 0 oklch(0.2 0.02 260 / 0.04), 0 4px 12px -2px oklch(0.2 0.02 260 / 0.06);
+  --shadow-card: 0 1px 2px rgba(66, 33, 22, 0.035), 0 6px 22px -10px rgba(66, 33, 22, 0.12);
   --shadow-pop: 0 8px 28px -6px oklch(0.2 0.02 260 / 0.18);
-  --gradient-brand: linear-gradient(135deg, oklch(0.66 0.19 42), oklch(0.58 0.2 29));
+  --gradient-brand: linear-gradient(115deg, #ff6425 0%, #ef3e12 100%);
 }
 
 .dark {
@@ -221,3 +221,8 @@
   #receipt-print-root[data-paper="A4"] .receipt-paper { width: 190mm !important; padding: 10mm !important; font-size: 12px !important; }
   #receipt-print-root .receipt-paper tr { break-inside: avoid; }
 }
+
+/* Reference-inspired surfaces: warm white workspace, restrained lines, orange calls to action. */
+.card-elevated { overflow-wrap: anywhere; }
+.card-elevated:focus-within { border-color: color-mix(in srgb, var(--color-brand) 30%, var(--color-border)); }
+@media (min-width: 768px) { .pos-menu-tabs { scrollbar-width: thin; } }
