@@ -105,6 +105,7 @@ export interface Order {
   change: number;
   paymentMethod: PaymentMethod;
   status: OrderStatus;
+  kitchenStatus?: "new" | "preparing" | "ready" | "served";
   note?: string;
 }
 
