@@ -40,7 +40,7 @@ function CategoriesPage() {
               <div className="truncate text-sm font-semibold" title={c.name}>{c.name}</div>
               <div className="mt-1 text-xs text-muted-foreground">{products.filter((p) => p.categoryId === c.id).length} items</div>
             </div>
-            <div className="absolute right-2 top-1/2 flex -translate-y-1/2 gap-1 opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+            <div className="absolute right-2 top-1/2 flex -translate-y-1/2 gap-1 opacity-100">
               <button type="button" aria-label={`Edit ${c.name}`} onClick={() => setEdit(c)} className="rounded-lg border bg-background p-2 shadow-sm focus-visible:outline-2 focus-visible:outline-ring"><Pencil className="h-3.5 w-3.5" /></button>
               <button type="button" aria-label={`Delete ${c.name}`} onClick={() => { if (confirm(`Delete "${c.name}"?`)) { deleteCategory(c.id); toast.success("Deleted"); } }} className="rounded-lg border bg-background p-2 text-destructive shadow-sm focus-visible:outline-2 focus-visible:outline-ring"><Trash2 className="h-3.5 w-3.5" /></button>
             </div>
