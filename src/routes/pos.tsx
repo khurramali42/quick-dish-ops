@@ -327,7 +327,7 @@ function PaymentDialog({ open, onClose, onDone }: { open: boolean; onClose: () =
               ))}
             </div>
             <label className="text-xs text-muted-foreground mt-3 block">Amount received</label>
-            <input type="number" value={paid} onChange={(e) => setPaid(+e.target.value)} className="w-full h-11 mt-1 rounded-lg border bg-background px-3 text-lg font-semibold" />
+            <input type="number" min={0} step="0.01" value={paid} onChange={(e) => setPaid(+e.target.value)} className="w-full h-11 mt-1 rounded-lg border bg-background px-3 text-lg font-semibold" />
             <div className="flex gap-1 mt-2 flex-wrap">
               {quick.map((v) => (
                 <button key={v} onClick={() => setPaid((p) => p + v)} className="text-xs px-2 py-1 rounded-md border hover:bg-accent">+{v}</button>
@@ -343,8 +343,16 @@ function PaymentDialog({ open, onClose, onDone }: { open: boolean; onClose: () =
         <div className="flex gap-2 justify-end">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <button
-            disabled={paid < totals.total}
-            onClick={() => { const o = checkout(paid, method); toast.success(`Order ${o.invoiceNo} completed`); onDone(o); }}
+            disabled={!Number.isFinite(paid) || paid < totals.total || paid < 0}
+            onClick={() => {
+              try {
+                const o = checkout(paid, method);
+                toast.success(`Order ${o.invoiceNo} completed`);
+                onDone(o);
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "Checkout could not be completed.");
+              }
+            }}
             className="px-5 h-10 rounded-lg bg-brand-gradient text-brand-foreground font-medium disabled:opacity-50"
           >
             Confirm & Print
