@@ -72,8 +72,8 @@ function POSScreen() {
     <AppLayout fullBleed>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {/* Top bar */}
-        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b bg-card px-3 py-2.5 shadow-sm sm:gap-3 sm:px-4">
-          <div className="relative order-2 w-full min-w-0 flex-none">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b bg-card px-3 py-2.5 shadow-sm sm:gap-3 sm:px-4 lg:flex-nowrap lg:gap-2">
+          <div className="relative order-1 w-full min-w-0 lg:w-auto lg:min-w-[190px] lg:flex-1">
             <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               ref={searchRef}
@@ -89,7 +89,7 @@ function POSScreen() {
             )}
           </div>
 
-          <div className="order-1 flex max-w-full shrink-0 items-center gap-1 overflow-x-auto rounded-lg border bg-muted/40 p-1">
+          <div className="order-2 flex max-w-full shrink-0 items-center gap-1 overflow-x-auto rounded-lg border bg-muted/40 p-1">
             {orderTypes.map((t) => {
               const Icon = t.icon;
               const active = orderType === t.key;
@@ -109,7 +109,7 @@ function POSScreen() {
             <select
               value={table ?? ""}
               onChange={(e) => setTable(e.target.value || undefined)}
-              className="order-1 h-9 min-w-0 max-w-[130px] rounded-lg border bg-background px-2 text-xs sm:max-w-none sm:px-3"
+              className="order-2 h-9 min-w-[104px] max-w-[130px] shrink-0 rounded-lg border bg-background px-2 text-xs sm:px-3"
             >
               <option value="">Select Table</option>
               {Array.from({ length: 12 }, (_, i) => `T${i + 1}`).map((t) => <option key={t} value={t}>{t}</option>)}
@@ -119,12 +119,12 @@ function POSScreen() {
           <select
             value={customerId ?? ""}
             onChange={(e) => setCustomer(e.target.value || undefined)}
-            className="order-1 h-10 max-w-[180px] min-w-0 rounded-lg border bg-background px-3 text-sm"
+            className="order-2 h-10 w-[145px] shrink-0 rounded-lg border bg-background px-3 text-sm"
           >
             {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
 
-          <div className="order-1 ml-auto hidden items-center gap-3 text-xs xl:flex">
+          <div className="order-2 ml-auto hidden items-center gap-3 text-xs 2xl:flex">
             <button onClick={() => setHelpOpen(true)} className="flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-accent">
               <Keyboard className="h-4 w-4" /> Shortcuts
             </button>
