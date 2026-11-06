@@ -27,7 +27,7 @@ function CustomersPage() {
       />
 
       <div className="card-elevated overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="table-scroll"><table className="w-full text-sm">
           <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
             <tr><th className="text-left px-4 py-2">Name</th><th className="text-left px-4 py-2">Phone</th><th className="text-left px-4 py-2">Address</th><th className="text-right px-4 py-2">Loyalty</th><th className="text-right px-4 py-2">Total Spent</th><th className="text-right px-4 py-2"></th></tr>
           </thead>
@@ -46,7 +46,7 @@ function CustomersPage() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       {edit && (

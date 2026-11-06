@@ -41,6 +41,7 @@ function POSScreen() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [heldOpen, setHeldOpen] = useState(false);
   const [receipt, setReceipt] = useState<Order | null>(null);
+  const [mobilePane, setMobilePane] = useState<"menu" | "cart">("menu");
   const searchRef = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(() => {
@@ -52,6 +53,9 @@ function POSScreen() {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      const isEditing = !!target?.closest("input, textarea, select, [contenteditable]");
+      if (isEditing && e.key !== "Escape" && e.key !== "F1") return;
       if (e.key === "F1") { e.preventDefault(); searchRef.current?.focus(); }
       else if (e.key === "F2") { e.preventDefault(); clearCart(); toast("New order started"); }
       else if (e.key === "F3") { e.preventDefault(); if (cart.length) { holdOrder(); toast.success("Order held"); } }
@@ -66,10 +70,10 @@ function POSScreen() {
 
   return (
     <AppLayout fullBleed>
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {/* Top bar */}
-        <div className="flex items-center gap-3 px-5 py-3 border-b bg-card">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b bg-card px-3 py-2.5 shadow-sm sm:gap-3 sm:px-4">
+          <div className="relative min-w-[175px] flex-[1_1_220px] lg:max-w-md">
             <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               ref={searchRef}
@@ -85,7 +89,7 @@ function POSScreen() {
             )}
           </div>
 
-          <div className="flex items-center gap-1 rounded-lg border p-1 bg-background">
+          <div className="order-3 flex w-full shrink-0 items-center gap-1 overflow-x-auto rounded-lg border bg-muted/40 p-1 sm:order-none sm:w-auto">
             {orderTypes.map((t) => {
               const Icon = t.icon;
               const active = orderType === t.key;
@@ -105,7 +109,7 @@ function POSScreen() {
             <select
               value={table ?? ""}
               onChange={(e) => setTable(e.target.value || undefined)}
-              className="h-10 rounded-lg border bg-background px-3 text-sm"
+              className="h-9 min-w-0 max-w-[130px] rounded-lg border bg-background px-2 text-xs sm:max-w-none sm:px-3"
             >
               <option value="">Select Table</option>
               {Array.from({ length: 12 }, (_, i) => `T${i + 1}`).map((t) => <option key={t} value={t}>{t}</option>)}
@@ -120,7 +124,7 @@ function POSScreen() {
             {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
 
-          <div className="ml-auto flex items-center gap-3 text-xs">
+          <div className="ml-auto hidden items-center gap-3 text-xs xl:flex">
             <button onClick={() => setHelpOpen(true)} className="flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-accent">
               <Keyboard className="h-4 w-4" /> Shortcuts
             </button>
@@ -131,10 +135,15 @@ function POSScreen() {
           </div>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 flex min-h-0">
+        <div className="flex shrink-0 gap-2 border-b bg-card px-3 py-2 lg:hidden">
+          <button type="button" onClick={() => setMobilePane("menu")} className={mobilePane === "menu" ? "flex-1 rounded-lg bg-brand-gradient px-3 py-2 text-sm font-semibold text-brand-foreground" : "flex-1 rounded-lg bg-muted px-3 py-2 text-sm font-semibold text-foreground"}>Menu</button>
+          <button type="button" onClick={() => setMobilePane("cart")} className={mobilePane === "cart" ? "flex-1 rounded-lg bg-brand-gradient px-3 py-2 text-sm font-semibold text-brand-foreground" : "flex-1 rounded-lg bg-muted px-3 py-2 text-sm font-semibold text-foreground"}>Order ({cart.reduce((n, item) => n + item.qty, 0)})</button>
+        </div>
+        {/* Every pane has an independent scroll area. */}
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          <div className={mobilePane === "menu" ? "flex min-h-0 min-w-0 flex-1 overflow-hidden lg:flex" : "hidden min-h-0 min-w-0 flex-1 overflow-hidden lg:flex"}>
           {/* Categories */}
-          <div className="w-40 shrink-0 border-r bg-card overflow-y-auto scrollbar-thin py-3 px-2 space-y-1">
+          <div aria-label="Product categories" className="scrollbar-thin w-[94px] shrink-0 space-y-1 overflow-y-auto overscroll-contain border-r bg-card px-1.5 py-2 sm:w-[116px] sm:px-2 xl:w-[136px]">
             <CatBtn active={activeCategory === "all"} onClick={() => setCategory("all")} icon="🍽️" label="All Items" />
             {categories.filter((c) => c.active).map((c) => (
               <CatBtn key={c.id} active={activeCategory === c.id} onClick={() => setCategory(c.id)} icon={c.icon} label={c.name} />
@@ -142,8 +151,8 @@ function POSScreen() {
           </div>
 
           {/* Product grid */}
-          <div className="flex-1 overflow-y-auto scrollbar-thin p-4 bg-background">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          <div className="scrollbar-thin min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-background p-2.5 sm:p-4">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,138px),1fr))] gap-2.5 xl:gap-3">
               {filtered.map((p) => <ProductCard key={p.id} product={p} onSelect={() => addToCart(p)} />)}
               {filtered.length === 0 && (
                 <div className="col-span-full text-center text-muted-foreground py-16">No items match.</div>
@@ -151,13 +160,14 @@ function POSScreen() {
             </div>
           </div>
 
-          {/* Cart */}
-          <div className="w-[380px] shrink-0 flex flex-col border-l bg-card">
-            <div className="p-4 border-b flex items-center justify-between">
+          </div>
+          {/* Current order with pinned totals. */}
+          <section aria-label="Current order" className={mobilePane === "cart" ? "flex min-h-0 w-full min-w-0 shrink-0 flex-col overflow-hidden border-l bg-card lg:flex lg:w-[340px] xl:w-[380px] 2xl:w-[400px]" : "hidden min-h-0 w-full min-w-0 shrink-0 flex-col overflow-hidden border-l bg-card lg:flex lg:w-[340px] xl:w-[380px] 2xl:w-[400px]"}>
+            <div className="flex shrink-0 items-center justify-between border-b px-4 py-3">
               <div>
                 <div className="font-semibold">Current Order</div>
                 <div className="text-xs text-muted-foreground">
-                  {orderType}{table ? ` · ${table}` : ""} · {cart.length} items
+                  {orderType}{table ? ` · ${table}` : ""} · {cart.reduce((n, item) => n + item.qty, 0)} units
                 </div>
               </div>
               <div className="flex gap-1">
@@ -170,14 +180,14 @@ function POSScreen() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto scrollbar-thin p-3 space-y-2">
+            <div aria-label="Order line items" tabIndex={0} className="scrollbar-thin min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-3 focus-visible:outline-2 focus-visible:outline-ring">
               {cart.length === 0 ? (
                 <div className="text-center text-muted-foreground text-sm py-12">
                   <div className="text-4xl mb-2">🛒</div>
                   Cart is empty. Tap an item to add.
                 </div>
               ) : cart.map((item) => (
-                <div key={item.lineId} className="rounded-lg border bg-background p-3">
+                <div key={item.lineId} className="rounded-xl border bg-background p-3 shadow-[0_1px_2px_rgba(0,0,0,0.025)]">
                   <div className="flex justify-between gap-2">
                     <div className="min-w-0">
                       <div className="text-sm font-medium truncate">{item.name}</div>
@@ -210,28 +220,28 @@ function POSScreen() {
             </div>
 
             {/* Totals */}
-            <div className="border-t bg-card p-4 space-y-1.5 text-sm">
+            <div className="z-10 shrink-0 space-y-1.5 border-t bg-card px-4 py-3 text-sm shadow-[0_-8px_24px_-16px_rgba(0,0,0,0.28)]">
               <Row label="Subtotal" value={money(totals.subtotal, settings.currency)} />
               {totals.itemDiscount > 0 && <Row label="Item discount" value={"− " + money(totals.itemDiscount, settings.currency)} muted />}
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Bill discount</span>
-                <input type="number" value={billDiscount || ""} onChange={(e) => setBillDiscount(+e.target.value)} className="w-24 h-7 text-right rounded-md border bg-background px-2 text-xs" />
+                <input type="number" value={billDiscount || ""} onChange={(e) => setBillDiscount(+e.target.value)} min={0} max={Math.max(0, totals.subtotal - totals.itemDiscount)} aria-label="Bill discount" className="h-8 w-28 rounded-md border bg-background px-2 text-right text-sm focus-visible:outline-2 focus-visible:outline-ring" />
               </div>
               <Row label={`Tax`} value={money(totals.tax, settings.currency)} muted />
               {totals.serviceCharge > 0 && <Row label={`Service (${settings.serviceChargePct}%)`} value={money(totals.serviceCharge, settings.currency)} muted />}
-              <div className="flex justify-between text-lg font-semibold pt-2 border-t">
+              <div className="flex items-center justify-between border-t pt-2 text-lg font-bold tabular-nums">
                 <span>Total</span>
                 <span>{money(totals.total, settings.currency)}</span>
               </div>
               <button
                 onClick={() => cart.length && setPayOpen(true)}
                 disabled={!cart.length}
-                className="w-full mt-3 h-12 rounded-lg bg-brand-gradient text-brand-foreground font-semibold shadow-sm hover:opacity-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand-gradient font-semibold text-brand-foreground shadow-sm transition-[filter,transform] hover:brightness-105 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <CreditCard className="h-4 w-4" /> Charge · {money(totals.total, settings.currency)}
               </button>
             </div>
-          </div>
+          </section>
         </div>
       </div>
 
@@ -245,7 +255,7 @@ function POSScreen() {
 
 function CatBtn({ active, onClick, icon, label }: any) {
   return (
-    <button onClick={onClick} className={`w-full flex flex-col items-center gap-1 py-3 rounded-lg text-xs font-medium transition-colors ${active ? "bg-brand-gradient text-brand-foreground" : "hover:bg-accent"}`}>
+    <button onClick={onClick} className={`flex w-full flex-col items-center gap-1 rounded-lg py-3 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring ${active ? "bg-brand-gradient text-brand-foreground" : "hover:bg-accent"}`}>
       <span className="text-2xl">{icon}</span>
       <span className="text-center leading-tight px-1">{label}</span>
     </button>
@@ -260,7 +270,7 @@ function ProductCard({ product, onSelect }: { product: Product; onSelect: () => 
     <button
       onClick={onSelect}
       disabled={out}
-      className="group text-left rounded-xl border bg-card overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+      className="group overflow-hidden rounded-xl border bg-card text-left shadow-sm transition-[border-color,box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
     >
       <div className={`${product.isDeal ? "aspect-[16/9]" : "h-28"} bg-gradient-to-br from-accent to-secondary relative overflow-hidden`}>
         <ProductThumb src={product.thumbnailUrl ?? product.imageUrl} emoji={product.emoji ?? "🍽️"} />
