@@ -21,7 +21,7 @@ jobs:
           bun-version: latest
       - name: Resolve patched TanStack Start and refresh Bun lockfile
         run: |
-          bun install
+          bun update @tanstack/react-start @tanstack/react-router @tanstack/router-plugin --latest
           bun -e 'const v=require("./node_modules/@tanstack/react-start/package.json").version; const parts=v.split(".").map(Number); if (parts[0]!==1 || parts[1]<168 || (parts[1]===168 && parts[2]<60)) { throw new Error("Unsafe TanStack Start "+v) }; console.log("Verified patched TanStack Start:",v)'
       - name: Validate application
         run: |
