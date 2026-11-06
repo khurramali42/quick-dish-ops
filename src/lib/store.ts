@@ -197,7 +197,7 @@ export const useStore = create<State>()(
         const customer = customers.find((c) => c.id === customerId);
         const order: Order = {
           id: shortId("O"),
-          invoiceNo: "INV-" + Date.now().toString().slice(-8),
+          invoiceNo: `INV-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${shortId().slice(0, 6)}`,
           createdAt: todayISO(),
           cashier: currentCashier,
           customerId,
@@ -272,7 +272,7 @@ export const useStore = create<State>()(
         }
         const calculated = p.items.reduce((sum, item) => sum + item.qty * item.cost, 0);
         if (Math.abs(calculated - p.total) > 0.01) throw new Error("Purchase total does not match line items.");
-        const purchase: Purchase = { ...p, id: shortId("P"), invoiceNo: "PO-" + Date.now().toString().slice(-8) };
+        const purchase: Purchase = { ...p, id: shortId("P"), invoiceNo: `PO-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${shortId().slice(0, 6)}` };
         // increase stock
         const products = get().products.map((prod) => {
           const received = p.items.filter((i) => i.productId === prod.id).reduce((sum, i) => sum + i.qty, 0);
