@@ -36,7 +36,7 @@ def test_pos(browser, width, height, mobile=False):
     assert charge.is_visible(), "Charge hidden after list scroll"
     page.screenshot(path=str(OUT / f"pos-{width}x{height}.png"), full_page=False)
     assert not errors, f"Browser JavaScript errors: {errors}"
-    print(f"PASS POS {width}x{height}: {measurements}; charge Y={before[\"y\"]:.1f}")
+    print(f"PASS POS {width}x{height}: {measurements}; charge Y={before['y']:.1f}")
     page.close()
 
 with sync_playwright() as p:
