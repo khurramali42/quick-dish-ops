@@ -39,6 +39,15 @@ jobs:
           done
           cat /tmp/quick-dish-server.log
           exit 1
+      - name: Verify dashboard, POS and orders respond successfully
+        run: |
+          for route in / /pos /orders; do
+            curl --fail --silent --show-error "http://127.0.0.1:3000$route" -o /tmp/quick-dish-route.html
+            if grep -qi "This page didn't load" /tmp/quick-dish-route.html; then
+              echo "Unexpected application error page at $route"
+              exit 1
+            fi
+          done
       - name: Capture desktop application screenshots
         run: |
           mkdir -p docs/screenshots
