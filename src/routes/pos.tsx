@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
 import { useStore, useCartTotals } from "@/lib/store";
-import { money, formatDateTime } from "@/lib/format";
+import { money } from "@/lib/format";
 import type { OrderType, PaymentMethod, Product } from "@/lib/types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ReceiptDialog } from "@/components/ReceiptDialog";
+import { ParkedOrdersDialog } from "@/components/ParkedOrdersDialog";
 import { CartReviewDialog } from "@/components/CartReviewDialog";
 import { ProductThumb } from "@/components/ImageUpload";
 import type { Order } from "@/lib/types";
@@ -34,7 +35,7 @@ function POSScreen() {
     products, categories, activeCategory, setCategory, search, setSearch,
     cart, addToCart, updateQty, removeLine, clearCart, updateItemDiscount, updateNote,
     orderType, setOrderType, table, setTable, customerId, setCustomer, customers,
-    billDiscount, setBillDiscount, heldOrders, holdOrder, recallOrder, deleteHeld,
+    billDiscount, setBillDiscount, heldOrders, holdOrder, recallOrder,
     settings, checkout, currentCashier,
   } = useStore();
   const totals = useCartTotals();
@@ -42,6 +43,7 @@ function POSScreen() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [heldOpen, setHeldOpen] = useState(false);
+  const [parkStatus, setParkStatus] = useState<"held" | "pending-payment" | null>(null);
   const [receipt, setReceipt] = useState<Order | null>(null);
   const [mobilePane, setMobilePane] = useState<"menu" | "cart">("menu");
   const searchRef = useRef<HTMLInputElement>(null);
@@ -79,7 +81,7 @@ function POSScreen() {
       if (isEditing && e.key !== "Escape" && e.key !== "F1") return;
       if (e.key === "F1") { e.preventDefault(); searchRef.current?.focus(); }
       else if (e.key === "F2") { e.preventDefault(); clearCart(); toast("New order started"); }
-      else if (e.key === "F3") { e.preventDefault(); if (cart.length) { holdOrder(); toast.success("Order held"); } }
+      else if (e.key === "F3") { e.preventDefault(); if (cart.length) setParkStatus("held"); }
       else if (e.key === "F4") { e.preventDefault(); setHeldOpen(true); }
       else if (e.key === "F5") { e.preventDefault(); if (cart.length) setPayOpen(true); }
       else if (e.key === "?" && e.shiftKey) { e.preventDefault(); setHelpOpen(true); }
@@ -203,8 +205,8 @@ function POSScreen() {
               </div>
               <div className="flex items-center gap-1">
                 <button type="button" onClick={() => setReviewOpen(true)} className="mr-1 rounded-lg bg-accent px-2.5 py-2 text-sm font-bold text-brand hover:bg-orange-100">View All</button>
-                <IconBtn title="Hold (F3)" onClick={() => { if (cart.length) { holdOrder(); toast.success("Order held"); } }}><Pause className="h-4 w-4" /></IconBtn>
-                <IconBtn title="Held (F4)" onClick={() => setHeldOpen(true)}>
+                <IconBtn title="Hold (F3)" onClick={() => { if (cart.length) setParkStatus("held"); }}><Pause className="h-4 w-4" /></IconBtn>
+                <IconBtn title="Parked orders (F4)" onClick={() => setHeldOpen(true)}>
                   <Play className="h-4 w-4" />
                   {heldOrders.length > 0 && <span className="ml-1 text-[10px] bg-brand-gradient text-brand-foreground rounded-full px-1.5">{heldOrders.length}</span>}
                 </IconBtn>
@@ -265,6 +267,9 @@ function POSScreen() {
                 <span>Total</span>
                 <span>{money(totals.total, settings.currency)}</span>
               </div>
+              <button type="button" disabled={!cart.length} onClick={() => setParkStatus("pending-payment")} className="mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-orange-300 bg-orange-50 text-sm font-bold text-orange-800 hover:bg-orange-100 disabled:opacity-40 dark:bg-accent dark:text-accent-foreground">
+                <Pause className="h-4 w-4" /> Save as Payment Pending
+              </button>
               <button
                 onClick={() => cart.length && setPayOpen(true)}
                 disabled={!cart.length}
@@ -280,7 +285,24 @@ function POSScreen() {
       <CartReviewDialog open={reviewOpen} onClose={() => setReviewOpen(false)} onCheckout={() => setPayOpen(true)} />
       <PaymentDialog open={payOpen} onClose={() => setPayOpen(false)} onDone={(o) => { setPayOpen(false); setReceipt(o); }} />
       <ReceiptDialog order={receipt} onClose={() => setReceipt(null)} />
-      <HeldDialog open={heldOpen} onClose={() => setHeldOpen(false)} onRecall={(id: string) => { recallOrder(id); setHeldOpen(false); }} onDelete={deleteHeld} held={heldOrders} />
+      <Dialog open={parkStatus !== null} onOpenChange={(value) => { if (!value) setParkStatus(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{parkStatus === "pending-payment" ? "Save payment-pending order?" : "Hold this order?"}</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">The full item list, quantities, discounts, notes, customer and table will be saved. Your current cart will be cleared for the next customer. No payment is recorded.</p>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setParkStatus(null)}>Back</Button>
+            <Button onClick={() => {
+              try {
+                if (!parkStatus) return;
+                holdOrder(parkStatus);
+                toast.success(parkStatus === "pending-payment" ? "Saved to Payment Pending" : "Order held successfully");
+                setParkStatus(null);
+              } catch (error) { toast.error(error instanceof Error ? error.message : "Could not save order"); }
+            }}>Save Order</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <ParkedOrdersDialog open={heldOpen} onClose={() => setHeldOpen(false)} onResume={recallOrder} />
       <HelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
     </AppLayout>
   );
@@ -401,34 +423,6 @@ function PaymentDialog({ open, onClose, onDone }: { open: boolean; onClose: () =
             Complete sale
           </button>
         </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function HeldDialog({ open, onClose, held, onRecall, onDelete }: any) {
-  return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>Held Orders ({held.length})</DialogTitle></DialogHeader>
-        {held.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-6 text-center">No held orders.</p>
-        ) : (
-          <ul className="max-h-80 overflow-y-auto space-y-2">
-            {held.map((h: any) => (
-              <li key={h.id} className="flex items-center justify-between p-3 rounded-lg border">
-                <div>
-                  <div className="font-medium text-sm">{h.id} · {h.orderType}{h.table ? ` · ${h.table}` : ""}</div>
-                  <div className="text-xs text-muted-foreground">{h.cart.length} items · {formatDateTime(h.at)}</div>
-                </div>
-                <div className="flex gap-1">
-                  <button onClick={() => onRecall(h.id)} className="px-3 py-1.5 text-xs rounded-md bg-brand-gradient text-brand-foreground">Recall</button>
-                  <button onClick={() => onDelete(h.id)} className="px-2 py-1.5 text-xs rounded-md border hover:bg-accent"><Trash2 className="h-3 w-3" /></button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
       </DialogContent>
     </Dialog>
   );
