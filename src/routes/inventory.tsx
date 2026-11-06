@@ -21,7 +21,7 @@ function InventoryPage() {
     return p.trackStock;
   });
 
-  const totalValue = products.reduce((s, p) => s + p.cost * p.stock, 0);
+  const totalValue = products.filter((p) => p.trackStock).reduce((s, p) => s + p.cost * p.stock, 0);
   const lowCount = products.filter((p) => p.trackStock && p.stock <= 10).length;
 
   const adjust = (id: string, delta: number) => {
@@ -62,7 +62,7 @@ function InventoryPage() {
                   <div className="inline-flex items-center gap-1">
                     <button onClick={() => adjust(p.id, -1)} className="w-7 h-7 rounded border hover:bg-accent">-</button>
                     <button onClick={() => adjust(p.id, +1)} className="w-7 h-7 rounded border hover:bg-accent">+</button>
-                    <button onClick={() => { const v = prompt("Set stock to:", String(p.stock)); if (v != null) { upsertProduct({ ...p, stock: Math.max(0, +v) }); toast.success("Stock updated"); } }} className="ml-1 px-2 py-1 text-xs rounded border hover:bg-accent">Set</button>
+                    <button onClick={() => { const v = prompt("Set stock to:", String(p.stock)); if (v != null) { const stock = Number(v); if (!Number.isInteger(stock) || stock < 0) { toast.error("Enter a valid whole-number stock quantity."); return; } upsertProduct({ ...p, stock }); toast.success("Stock updated"); } }} className="ml-1 px-2 py-1 text-xs rounded border hover:bg-accent">Set</button>
                   </div>
                 </td>
               </tr>
