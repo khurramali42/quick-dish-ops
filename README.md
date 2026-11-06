@@ -2,20 +2,6 @@
 
 A restaurant and cafe point-of-sale interface built with React, TanStack Start, Vite and TypeScript.
 
-## Real-interface device mockups
-
-These presentation images display **the application's actual screenshots inside desktop and tablet frames**. The UI was captured from the running app, not invented or redrawn. The display frames and background are decorative.
-
-![Spice Kitchen POS dashboard and checkout on desktop and tablet](docs/mockups/overview-device-mockup.png)
-
-### POS detail
-
-![Actual Spice Kitchen POS interface in a desktop mockup](docs/mockups/pos-device-mockup.png)
-
-### Orders detail
-
-![Actual Spice Kitchen POS orders screen in a desktop mockup](docs/mockups/orders-device-mockup.png)
-
 ## Application screenshots
 
 Captured from the running application in headless Chromium at desktop resolution, using fictional sample data.
@@ -66,5 +52,5 @@ The default UI identity is **Spice Kitchen POS**, and the example restaurant det
 
 ## Automated verification
 
-The GitHub Actions build verifies the independent application compilation, checkout integrity tests, and real browser screenshots. See [the build workflow](.github/workflows/build.yml) and [screenshot workflow](.github/workflows/capture-screenshots.yml). The screenshots are documentation, not evidence of production-grade database security.
+GitHub Actions verifies the application build and checkout regression tests. A separate browser workflow captured the original interface screenshots. See [the build workflow](.github/workflows/build.yml) and [screenshot workflow](.github/workflows/capture-screenshots.yml). The screenshots are documentation, not evidence of production-grade database security.
 
