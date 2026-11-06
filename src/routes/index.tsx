@@ -13,9 +13,9 @@ export const Route = createFileRoute("/")({
 function Dashboard() {
   const { orders, products, expenses, settings } = useStore();
   const today = new Date().toDateString();
-  const todaysOrders = orders.filter((o) => new Date(o.createdAt).toDateString() === today);
+  const todaysOrders = orders.filter((o) => o.status === "completed" && new Date(o.createdAt).toDateString() === today);
   const todaySales = todaysOrders.reduce((s, o) => s + o.total, 0);
-  const todayProfit = todaysOrders.reduce((s, o) => {
+  const todayGrossProfit = todaysOrders.reduce((s, o) => {
     const cost = o.items.reduce((c, i) => {
       const p = products.find((p) => p.id === i.productId);
       return c + (p?.cost ?? 0) * i.qty;
@@ -23,6 +23,7 @@ function Dashboard() {
     return s + (o.total - cost);
   }, 0);
   const todayExpenses = expenses.filter((e) => new Date(e.date).toDateString() === today).reduce((s, e) => s + e.amount, 0);
+  const todayProfit = todayGrossProfit - todayExpenses;
   const lowStock = products.filter((p) => p.trackStock && p.stock <= 10);
 
   // sales by hour today
@@ -34,7 +35,7 @@ function Dashboard() {
 
   // top items
   const itemCount: Record<string, { name: string; qty: number; revenue: number }> = {};
-  orders.slice(0, 200).forEach((o) => o.items.forEach((i) => {
+  orders.filter((o) => o.status === "completed").slice(0, 200).forEach((o) => o.items.forEach((i) => {
     itemCount[i.productId] ??= { name: i.name, qty: 0, revenue: 0 };
     itemCount[i.productId].qty += i.qty;
     itemCount[i.productId].revenue += i.unitPrice * i.qty;
@@ -56,7 +57,7 @@ function Dashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard icon={DollarSign} label="Today's Sales" value={money(todaySales, settings.currency)} tint="bg-emerald-50 text-emerald-600" />
         <StatCard icon={ShoppingBag} label="Today's Orders" value={todaysOrders.length.toString()} tint="bg-blue-50 text-blue-600" />
-        <StatCard icon={TrendingUp} label="Est. Profit" value={money(todayProfit, settings.currency)} tint="bg-orange-50 text-orange-600" />
+        <StatCard icon={TrendingUp} label="Est. Profit (after expenses)" value={money(todayProfit, settings.currency)} tint="bg-orange-50 text-orange-600" />
         <StatCard icon={AlertTriangle} label="Low Stock" value={lowStock.length.toString()} tint="bg-red-50 text-red-600" />
       </div>
 
