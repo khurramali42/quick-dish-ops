@@ -14,7 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
@@ -43,9 +45,11 @@ jobs:
           test ! -e docs/mockups/overview-device-mockup.png
       - name: Confirm required public repository documents
         run: |
-          for file in README.md LICENSE SECURITY.md CONTRIBUTING.md; do
+          for file in README.md LICENSE SECURITY.md CONTRIBUTING.md THIRD_PARTY_NOTICES.md; do
             test -s "$file"
           done
+      - name: Audit tracked and historical high-confidence secrets
+        run: python3 scripts/audit-public-history.py
       - name: Install from checked-in lockfile
         run: bun install --frozen-lockfile
       - name: Test checkout, stock and refunds
