@@ -53,6 +53,9 @@ function POSScreen() {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      const isEditing = !!target?.closest("input, textarea, select, [contenteditable]");
+      if (isEditing && e.key !== "Escape" && e.key !== "F1") return;
       if (e.key === "F1") { e.preventDefault(); searchRef.current?.focus(); }
       else if (e.key === "F2") { e.preventDefault(); clearCart(); toast("New order started"); }
       else if (e.key === "F3") { e.preventDefault(); if (cart.length) { holdOrder(); toast.success("Order held"); } }
@@ -164,7 +167,7 @@ function POSScreen() {
               <div>
                 <div className="font-semibold">Current Order</div>
                 <div className="text-xs text-muted-foreground">
-                  {orderType}{table ? ` · ${table}` : ""} · {cart.length} items
+                  {orderType}{table ? ` · ${table}` : ""} · {cart.reduce((n, item) => n + item.qty, 0)} units
                 </div>
               </div>
               <div className="flex gap-1">
@@ -184,7 +187,7 @@ function POSScreen() {
                   Cart is empty. Tap an item to add.
                 </div>
               ) : cart.map((item) => (
-                <div key={item.lineId} className="rounded-lg border bg-background p-3">
+                <div key={item.lineId} className="rounded-xl border bg-background p-3 shadow-[0_1px_2px_rgba(0,0,0,0.025)]">
                   <div className="flex justify-between gap-2">
                     <div className="min-w-0">
                       <div className="text-sm font-medium truncate">{item.name}</div>
@@ -222,18 +225,18 @@ function POSScreen() {
               {totals.itemDiscount > 0 && <Row label="Item discount" value={"− " + money(totals.itemDiscount, settings.currency)} muted />}
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Bill discount</span>
-                <input type="number" value={billDiscount || ""} onChange={(e) => setBillDiscount(+e.target.value)} className="w-24 h-7 text-right rounded-md border bg-background px-2 text-xs" />
+                <input type="number" value={billDiscount || ""} onChange={(e) => setBillDiscount(+e.target.value)} min={0} max={Math.max(0, totals.subtotal - totals.itemDiscount)} aria-label="Bill discount" className="h-8 w-28 rounded-md border bg-background px-2 text-right text-sm focus-visible:outline-2 focus-visible:outline-ring" />
               </div>
               <Row label={`Tax`} value={money(totals.tax, settings.currency)} muted />
               {totals.serviceCharge > 0 && <Row label={`Service (${settings.serviceChargePct}%)`} value={money(totals.serviceCharge, settings.currency)} muted />}
-              <div className="flex justify-between text-lg font-semibold pt-2 border-t">
+              <div className="flex items-center justify-between border-t pt-2 text-lg font-bold tabular-nums">
                 <span>Total</span>
                 <span>{money(totals.total, settings.currency)}</span>
               </div>
               <button
                 onClick={() => cart.length && setPayOpen(true)}
                 disabled={!cart.length}
-                className="w-full mt-3 h-12 rounded-lg bg-brand-gradient text-brand-foreground font-semibold shadow-sm hover:opacity-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand-gradient font-semibold text-brand-foreground shadow-sm transition-[filter,transform] hover:brightness-105 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <CreditCard className="h-4 w-4" /> Charge · {money(totals.total, settings.currency)}
               </button>
@@ -252,7 +255,7 @@ function POSScreen() {
 
 function CatBtn({ active, onClick, icon, label }: any) {
   return (
-    <button onClick={onClick} className={`w-full flex flex-col items-center gap-1 py-3 rounded-lg text-xs font-medium transition-colors ${active ? "bg-brand-gradient text-brand-foreground" : "hover:bg-accent"}`}>
+    <button onClick={onClick} className={`flex w-full flex-col items-center gap-1 rounded-lg py-3 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-ring ${active ? "bg-brand-gradient text-brand-foreground" : "hover:bg-accent"}`}>
       <span className="text-2xl">{icon}</span>
       <span className="text-center leading-tight px-1">{label}</span>
     </button>
@@ -267,7 +270,7 @@ function ProductCard({ product, onSelect }: { product: Product; onSelect: () => 
     <button
       onClick={onSelect}
       disabled={out}
-      className="group text-left rounded-xl border bg-card overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+      className="group overflow-hidden rounded-xl border bg-card text-left shadow-sm transition-[border-color,box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
     >
       <div className={`${product.isDeal ? "aspect-[16/9]" : "h-28"} bg-gradient-to-br from-accent to-secondary relative overflow-hidden`}>
         <ProductThumb src={product.thumbnailUrl ?? product.imageUrl} emoji={product.emoji ?? "🍽️"} />
