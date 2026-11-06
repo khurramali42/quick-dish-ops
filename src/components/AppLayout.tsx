@@ -5,7 +5,7 @@ import { useStore } from "@/lib/store";
 import { AppSidebar, MobileNavigation } from "./AppSidebar";
 
 export function AppLayout({ children, fullBleed = false }: { children: ReactNode; fullBleed?: boolean }) {
-  const { settings, currentCashier } = useStore();
+  const { currentCashier } = useStore();
   return (
     <div className={fullBleed ? "flex h-dvh min-h-0 w-full overflow-hidden bg-background" : "flex min-h-dvh w-full bg-background"}>
       <AppSidebar />
