@@ -1,0 +1,38 @@
+name: Refresh patched TanStack lockfile
+
+on:
+  push:
+    branches: [security/tanstack-start-xss-hotfix]
+    paths:
+      - ".github/workflows/refresh-tanstack-lock.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Resolve patched TanStack Start and refresh Bun lockfile
+        run: |
+          bun install
+          bun -e 'const v=require("./node_modules/@tanstack/react-start/package.json").version; const parts=v.split(".").map(Number); if (parts[0]!==1 || parts[1]<168 || (parts[1]===168 && parts[2]<60)) { throw new Error("Unsafe TanStack Start "+v) }; console.log("Verified patched TanStack Start:",v)'
+      - name: Validate application
+        run: |
+          bun test
+          bun run build
+      - name: Commit resolved lockfile to fix branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bun.lock
+          if ! git diff --cached --quiet; then
+            git commit -m "fix: lock patched TanStack Start dependency [skip ci]"
+            git push origin HEAD:security/tanstack-start-xss-hotfix
+          fi
