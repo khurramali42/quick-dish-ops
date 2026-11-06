@@ -2,7 +2,7 @@ name: Restaurant POS viewport checks
 on:
   push:
     branches: [ui/pos-fixed-checkout-and-polish]
-    paths: [".github/workflows/pos-viewport-check.yml"]
+    paths: [".github/workflows/pos-viewport-check.yml", "tests/pos-viewport-check.py"]
   workflow_dispatch:
 permissions:
   contents: read
