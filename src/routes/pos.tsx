@@ -45,6 +45,24 @@ function POSScreen() {
   const searchRef = useRef<HTMLInputElement>(null);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
 
+  // Convert vertical mouse-wheel movement into horizontal scrolling only
+  // when the pointer is over the overflowing category strip.
+  useEffect(() => {
+    const strip = categoryScrollRef.current;
+    if (!strip) return;
+    const onWheel = (event: WheelEvent) => {
+      if (event.ctrlKey || event.metaKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
+      if (strip.scrollWidth <= strip.clientWidth + 1) return;
+      const maxLeft = strip.scrollWidth - strip.clientWidth;
+      const nextLeft = Math.min(maxLeft, Math.max(0, strip.scrollLeft + event.deltaY));
+      if (Math.abs(nextLeft - strip.scrollLeft) < 0.5) return; // allow page scroll at edges
+      event.preventDefault();
+      strip.scrollLeft = nextLeft;
+    };
+    strip.addEventListener("wheel", onWheel, { passive: false });
+    return () => strip.removeEventListener("wheel", onWheel);
+  }, []);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return products.filter((p) => p.available
