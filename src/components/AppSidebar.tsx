@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   LayoutDashboard, ShoppingCart, Package, Tag, Boxes, ClipboardList, Users,
-  Truck, ReceiptText, BarChart3, ChefHat, Settings, Wallet, Moon, Sun, Menu, X,
+  Truck, ReceiptText, BarChart3, ChefHat, Settings, Wallet, Moon, Sun, Menu, X, Maximize, Minimize,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -23,19 +23,19 @@ const nav = [
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
-export function AppSidebar({ collapsed = false }: { collapsed?: boolean }) {
+export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const branchName = useStore((state) => state.settings.branchName);
   const darkMode = useStore((state) => state.darkMode);
   const toggleDark = useStore((state) => state.toggleDark);
 
   return (
-    <aside aria-label="Main navigation" className={cn("sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex transition-[width] duration-150", collapsed ? "w-[72px]" : "w-[206px] xl:w-[228px]")}>
-      <div className={cn("flex items-center border-b border-sidebar-border py-5", collapsed ? "justify-center px-2" : "gap-3 px-4")}>
+    <aside className="sticky top-0 hidden h-dvh w-[206px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex xl:w-[228px]">
+      <div className="flex items-center gap-3 border-b border-sidebar-border px-4 py-5">
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 text-brand">
           <ChefHat className="h-7 w-7" />
         </div>
-        <div className={cn("min-w-0", collapsed && "hidden")}>
+        <div className="min-w-0">
           <div className="truncate font-display text-sm font-extrabold tracking-tight">Spice Kitchen <span className="text-brand">POS</span></div>
           <div className="truncate text-[11px] text-muted-foreground">{branchName}</div>
         </div>
@@ -49,11 +49,8 @@ export function AppSidebar({ collapsed = false }: { collapsed?: boolean }) {
             <Link
               key={n.to}
               to={n.to}
-              title={collapsed ? n.label : undefined}
-              aria-label={n.label}
               className={cn(
-                "flex items-center rounded-lg py-2.5 text-sm font-semibold transition-all",
-                collapsed ? "justify-center px-2" : "gap-3 px-3",
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all",
                 active
                   ? "bg-brand-gradient text-brand-foreground shadow-sm"
                   : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground opacity-90",
@@ -61,14 +58,14 @@ export function AppSidebar({ collapsed = false }: { collapsed?: boolean }) {
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              {!collapsed && <span className="truncate">{n.label}</span>}
+              <span className="truncate">{n.label}</span>
             </Link>
           );
         })}
       </nav>
 
-      <div className={cn("flex items-center border-t border-sidebar-border px-3 py-3", collapsed ? "justify-center" : "justify-between")}>
-        {!collapsed && <div className="text-[11px] opacity-60 px-2">v1.0 · PKR</div>}
+      <div className="flex items-center justify-between border-t border-sidebar-border px-3 py-3">
+        <div className="text-[11px] opacity-60 px-2">v1.0 · PKR</div>
         <button
           onClick={toggleDark}
           className="p-2 rounded-lg hover:bg-sidebar-accent"
@@ -82,7 +79,7 @@ export function AppSidebar({ collapsed = false }: { collapsed?: boolean }) {
 }
 
 /** Compact navigation for phones and narrow tablets. */
-export function MobileNavigation() {
+export function MobileNavigation({ fullscreen, onToggleFullscreen }: { fullscreen: boolean; onToggleFullscreen: () => void }) {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const darkMode = useStore((state) => state.darkMode);
   const toggleDark = useStore((state) => state.toggleDark);
@@ -94,6 +91,9 @@ export function MobileNavigation() {
           <Menu className="h-5 w-5" />
         </button>
         <span className="min-w-0 flex-1 truncate font-display text-sm font-extrabold">Spice Kitchen <span className="text-brand">POS</span></span>
+        <button type="button" onClick={onToggleFullscreen} title={fullscreen ? "Exit fullscreen" : "Fullscreen"} aria-label={fullscreen ? "Exit fullscreen" : "Enter fullscreen"} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border hover:bg-accent">
+          {fullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+        </button>
         <Link to="/pos" className="rounded-lg bg-brand-gradient px-3 py-2 text-xs font-semibold text-brand-foreground">Open POS</Link>
       </div>
       {open && (
