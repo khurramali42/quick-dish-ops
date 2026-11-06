@@ -28,6 +28,7 @@ export function AppSidebar({ collapsed = false }: { collapsed?: boolean }) {
   const branchName = useStore((state) => state.settings.branchName);
   const darkMode = useStore((state) => state.darkMode);
   const toggleDark = useStore((state) => state.toggleDark);
+  const [hoveredTab, setHoveredTab] = useState<{ label: string; top: number } | null>(null);
 
   return (
     <aside aria-label="Main navigation" className={cn("sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-150 lg:flex", collapsed ? "w-[72px]" : "w-[206px] xl:w-[228px]")}>
@@ -41,7 +42,7 @@ export function AppSidebar({ collapsed = false }: { collapsed?: boolean }) {
         </div>
       </div>
 
-      <nav className={cn("scrollbar-thin flex-1 space-y-1 overflow-y-auto py-4", collapsed ? "px-2" : "px-3")}>
+      <nav onScroll={() => setHoveredTab(null)} className={cn("scrollbar-thin flex-1 space-y-1 overflow-y-auto py-4", collapsed ? "px-2" : "px-3")}>
         {nav.map((n) => {
           const active = n.to === "/" ? pathname === "/" : pathname.startsWith(n.to);
           const Icon = n.icon;
@@ -51,6 +52,10 @@ export function AppSidebar({ collapsed = false }: { collapsed?: boolean }) {
               to={n.to}
               title={collapsed ? n.label : undefined}
               aria-label={n.label}
+              onMouseEnter={(event) => collapsed && setHoveredTab({ label: n.label, top: event.currentTarget.getBoundingClientRect().top + 7 })}
+              onMouseLeave={() => setHoveredTab(null)}
+              onFocus={(event) => collapsed && setHoveredTab({ label: n.label, top: event.currentTarget.getBoundingClientRect().top + 7 })}
+              onBlur={() => setHoveredTab(null)}
               className={cn(
                 "group relative flex items-center rounded-lg py-2.5 text-sm font-semibold transition-all",
                 collapsed ? "justify-center px-2" : "gap-3 px-3",
@@ -61,12 +66,17 @@ export function AppSidebar({ collapsed = false }: { collapsed?: boolean }) {
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              {collapsed ? <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-lg bg-foreground px-3 py-2 text-xs font-semibold text-background opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">{n.label}</span> : <span className="truncate">{n.label}</span>}
+              {!collapsed && <span className="truncate">{n.label}</span>}
             </Link>
           );
         })}
       </nav>
 
+      {collapsed && hoveredTab && (
+        <div role="tooltip" className="pointer-events-none fixed left-[78px] z-[100] whitespace-nowrap rounded-lg bg-foreground px-3 py-2 text-xs font-semibold text-background shadow-xl" style={{ top: hoveredTab.top }}>
+          {hoveredTab.label}
+        </div>
+      )}
       <div className={cn("flex items-center border-t border-sidebar-border px-3 py-3", collapsed ? "justify-center" : "justify-between")}>
         {!collapsed && <div className="text-[11px] opacity-60 px-2">v1.0 · PKR</div>}
         <button
