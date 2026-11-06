@@ -1,21 +1,42 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { CircleUserRound, ClipboardList, Info } from "lucide-react";
+import { CircleUserRound, ClipboardList, Info, PanelLeftClose, PanelLeftOpen, Maximize, Minimize } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { AppSidebar, MobileNavigation } from "./AppSidebar";
 
 export function AppLayout({ children, fullBleed = false }: { children: ReactNode; fullBleed?: boolean }) {
   const currentCashier = useStore((state) => state.currentCashier);
+  const [collapsed, setCollapsed] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  useEffect(() => {
+    const sync = () => setFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", sync);
+    return () => document.removeEventListener("fullscreenchange", sync);
+  }, []);
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
+    } catch {
+      setFullscreen(Boolean(document.fullscreenElement));
+    }
+  };
   return (
     <div className={fullBleed ? "flex h-dvh min-h-0 w-full overflow-hidden bg-background" : "flex min-h-dvh w-full bg-background"}>
-      <AppSidebar />
+      <AppSidebar collapsed={collapsed} />
       <main className={fullBleed ? "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden" : "flex min-w-0 flex-1 flex-col"}>
         <MobileNavigation />
         <header className="hidden h-[68px] shrink-0 items-center justify-between gap-5 border-b bg-card px-5 shadow-[0_2px_12px_rgba(52,26,12,0.03)] lg:flex xl:px-8">
           <div className="flex min-w-0 items-center gap-3">
+            <button type="button" title={collapsed ? "Expand navigation" : "Collapse navigation"} aria-label={collapsed ? "Expand navigation" : "Collapse navigation"} aria-expanded={!collapsed} onClick={() => setCollapsed((v) => !v)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border hover:bg-accent">
+              {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+            </button>
             <span className="truncate text-sm font-semibold text-muted-foreground">Restaurant operations</span>
           </div>
           <div className="flex shrink-0 items-center gap-4">
+            <button type="button" onClick={toggleFullscreen} title={fullscreen ? "Exit fullscreen (Esc)" : "Fullscreen"} aria-label={fullscreen ? "Exit fullscreen" : "Enter fullscreen"} className="flex h-10 w-10 items-center justify-center rounded-lg border hover:bg-accent">
+              {fullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+            </button>
             <details className="group relative">
               <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring">
                 <Info className="h-3.5 w-3.5" /> Demo mode
