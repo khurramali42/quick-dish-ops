@@ -11,7 +11,7 @@ export function AppLayout({ children, fullBleed = false }: { children: ReactNode
       <AppSidebar />
       <main className={fullBleed ? "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden" : "flex min-w-0 flex-1 flex-col"}>
         <MobileNavigation />
-        <header className="hidden h-[68px] shrink-0 items-center justify-between gap-5 border-b bg-card px-5 shadow-[0_2px_12px_rgba(52,26,12,0.03)] md:flex xl:px-8">
+        <header className="hidden h-[68px] shrink-0 items-center justify-between gap-5 border-b bg-card px-5 shadow-[0_2px_12px_rgba(52,26,12,0.03)] lg:flex xl:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-50 text-brand">
               <ChefHat className="h-5 w-5" />
