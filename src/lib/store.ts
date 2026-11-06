@@ -72,15 +72,17 @@ interface State {
 
 function cartTotals(cart: CartItem[], billDiscount: number, serviceChargePct: number, deliveryCharge = 0) {
   const subtotal = cart.reduce((s, i) => s + i.unitPrice * i.qty, 0);
-  const itemDiscount = cart.reduce((s, i) => s + i.discount, 0);
-  const taxable = cart.reduce((s, i) => s + Math.max(0, i.unitPrice * i.qty - i.discount), 0) - billDiscount;
+  const itemDiscount = cart.reduce((s, i) => s + Math.min(i.unitPrice * i.qty, Math.max(0, i.discount)), 0);
+  const preBill = Math.max(0, subtotal - itemDiscount);
+  const appliedBillDiscount = Math.min(preBill, Math.max(0, billDiscount));
+  const taxable = Math.max(0, preBill - appliedBillDiscount);
   const tax = cart.reduce((s, i) => {
-    const line = Math.max(0, i.unitPrice * i.qty - i.discount);
-    return s + (line * i.taxRate) / 100;
+    const line = Math.max(0, i.unitPrice * i.qty - Math.min(i.unitPrice * i.qty, Math.max(0, i.discount)));
+    return s + (line * (preBill > 0 ? taxable / preBill : 0) * Math.max(0, i.taxRate)) / 100;
   }, 0);
-  const serviceCharge = ((subtotal - itemDiscount - billDiscount) * serviceChargePct) / 100;
-  const total = Math.max(0, subtotal - itemDiscount - billDiscount + tax + serviceCharge + deliveryCharge);
-  return { subtotal, itemDiscount, taxable, tax, serviceCharge, total };
+  const serviceCharge = (taxable * Math.max(0, serviceChargePct)) / 100;
+  const total = Math.max(0, taxable + tax + serviceCharge + Math.max(0, deliveryCharge));
+  return { subtotal, itemDiscount, appliedBillDiscount, taxable, tax, serviceCharge, total };
 }
 
 export const useStore = create<State>()(
@@ -111,7 +113,7 @@ export const useStore = create<State>()(
       setOrderType: (t) => set({ orderType: t }),
       setTable: (t) => set({ table: t }),
       setCustomer: (id) => set({ customerId: id }),
-      setBillDiscount: (n) => set({ billDiscount: Math.max(0, n) }),
+      setBillDiscount: (n) => set({ billDiscount: Number.isFinite(n) ? Math.max(0, n) : 0 }),
       toggleDark: () => {
         const d = !get().darkMode;
         set({ darkMode: d });
@@ -144,10 +146,10 @@ export const useStore = create<State>()(
         set({ cart });
       },
       updateQty: (lineId, qty) => set({
-        cart: get().cart.map((c) => c.lineId === lineId ? { ...c, qty: Math.max(1, qty) } : c),
+        cart: get().cart.map((c) => c.lineId === lineId ? { ...c, qty: Number.isFinite(qty) ? Math.max(1, Math.floor(qty)) : c.qty } : c),
       }),
       updateItemDiscount: (lineId, d) => set({
-        cart: get().cart.map((c) => c.lineId === lineId ? { ...c, discount: Math.max(0, d) } : c),
+        cart: get().cart.map((c) => c.lineId === lineId ? { ...c, discount: Number.isFinite(d) ? Math.min(c.unitPrice * c.qty, Math.max(0, d)) : c.discount } : c),
       }),
       updateNote: (lineId, note) => set({
         cart: get().cart.map((c) => c.lineId === lineId ? { ...c, note } : c),
@@ -176,6 +178,21 @@ export const useStore = create<State>()(
       checkout: (paid, method) => {
         const { cart, billDiscount, settings, orderType, table, customerId, customers, currentCashier, products } = get();
         const t = cartTotals(cart, billDiscount, settings.serviceChargePct);
+        if (cart.length === 0) throw new Error("Add at least one product before checkout.");
+        if (!Number.isFinite(paid) || paid < t.total || paid < 0) {
+          throw new Error("Payment must cover the total bill.");
+        }
+        for (const item of cart) {
+          if (!Number.isInteger(item.qty) || item.qty < 1 || !Number.isFinite(item.unitPrice) || item.unitPrice < 0) {
+            throw new Error("Cart contains an invalid item quantity or price.");
+          }
+          const product = products.find((p) => p.id === item.productId);
+          if (!product || !product.available) throw new Error("A product in the cart is no longer available.");
+          if (product.trackStock) {
+            const requested = cart.filter((c) => c.productId === product.id).reduce((n, c) => n + c.qty, 0);
+            if (requested > product.stock) throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}.`);
+          }
+        }
         const customer = customers.find((c) => c.id === customerId);
         const order: Order = {
           id: shortId("O"),
@@ -189,7 +206,7 @@ export const useStore = create<State>()(
           items: cart,
           subtotal: t.subtotal,
           itemDiscount: t.itemDiscount,
-          billDiscount,
+          billDiscount: t.appliedBillDiscount,
           tax: t.tax,
           serviceCharge: t.serviceCharge,
           deliveryCharge: 0,
@@ -254,9 +271,24 @@ export const useStore = create<State>()(
       },
       addExpense: (e) => set({ expenses: [{ ...e, id: shortId("E") }, ...get().expenses] }),
       updateSettings: (s) => set({ settings: { ...get().settings, ...s } }),
-      refundOrder: (id) => set({
-        orders: get().orders.map((o) => o.id === id ? { ...o, status: "refunded" } : o),
-      }),
+      refundOrder: (id) => {
+        const { orders, products, customers } = get();
+        const order = orders.find((o) => o.id === id);
+        if (!order || order.status === "refunded") return;
+        const nextProducts = products.map((p) => {
+          if (!p.trackStock) return p;
+          const returned = order.items.filter((item) => item.productId === p.id).reduce((sum, item) => sum + item.qty, 0);
+          return returned ? { ...p, stock: p.stock + returned } : p;
+        });
+        const nextCustomers = customers.map((c) => c.id === order.customerId
+          ? { ...c, totalSpent: Math.max(0, c.totalSpent - order.total), loyaltyPoints: Math.max(0, c.loyaltyPoints - Math.floor(order.total / 100)) }
+          : c);
+        set({
+          products: nextProducts,
+          customers: nextCustomers,
+          orders: orders.map((o) => o.id === id ? { ...o, status: "refunded" } : o),
+        });
+      },
       resetAll: () => {
         localStorage.removeItem("spice-pos-v1");
         location.reload();
