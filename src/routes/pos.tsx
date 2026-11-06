@@ -41,6 +41,7 @@ function POSScreen() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [heldOpen, setHeldOpen] = useState(false);
   const [receipt, setReceipt] = useState<Order | null>(null);
+  const [mobilePane, setMobilePane] = useState<"menu" | "cart">("menu");
   const searchRef = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(() => {
@@ -66,10 +67,10 @@ function POSScreen() {
 
   return (
     <AppLayout fullBleed>
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {/* Top bar */}
-        <div className="flex items-center gap-3 px-5 py-3 border-b bg-card">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b bg-card px-3 py-2.5 shadow-sm sm:gap-3 sm:px-4">
+          <div className="relative min-w-[175px] flex-[1_1_220px] lg:max-w-md">
             <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               ref={searchRef}
@@ -85,7 +86,7 @@ function POSScreen() {
             )}
           </div>
 
-          <div className="flex items-center gap-1 rounded-lg border p-1 bg-background">
+          <div className="order-3 flex w-full shrink-0 items-center gap-1 overflow-x-auto rounded-lg border bg-muted/40 p-1 sm:order-none sm:w-auto">
             {orderTypes.map((t) => {
               const Icon = t.icon;
               const active = orderType === t.key;
@@ -105,7 +106,7 @@ function POSScreen() {
             <select
               value={table ?? ""}
               onChange={(e) => setTable(e.target.value || undefined)}
-              className="h-10 rounded-lg border bg-background px-3 text-sm"
+              className="h-9 min-w-0 max-w-[130px] rounded-lg border bg-background px-2 text-xs sm:max-w-none sm:px-3"
             >
               <option value="">Select Table</option>
               {Array.from({ length: 12 }, (_, i) => `T${i + 1}`).map((t) => <option key={t} value={t}>{t}</option>)}
@@ -120,7 +121,7 @@ function POSScreen() {
             {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
 
-          <div className="ml-auto flex items-center gap-3 text-xs">
+          <div className="ml-auto hidden items-center gap-3 text-xs xl:flex">
             <button onClick={() => setHelpOpen(true)} className="flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-accent">
               <Keyboard className="h-4 w-4" /> Shortcuts
             </button>
@@ -142,8 +143,8 @@ function POSScreen() {
           </div>
 
           {/* Product grid */}
-          <div className="flex-1 overflow-y-auto scrollbar-thin p-4 bg-background">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          <div className="scrollbar-thin min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-background p-2.5 sm:p-4">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,138px),1fr))] gap-2.5 xl:gap-3">
               {filtered.map((p) => <ProductCard key={p.id} product={p} onSelect={() => addToCart(p)} />)}
               {filtered.length === 0 && (
                 <div className="col-span-full text-center text-muted-foreground py-16">No items match.</div>
@@ -153,7 +154,7 @@ function POSScreen() {
 
           {/* Cart */}
           <div className="w-[380px] shrink-0 flex flex-col border-l bg-card">
-            <div className="p-4 border-b flex items-center justify-between">
+            <div className="flex shrink-0 items-center justify-between border-b px-4 py-3">
               <div>
                 <div className="font-semibold">Current Order</div>
                 <div className="text-xs text-muted-foreground">
@@ -170,7 +171,7 @@ function POSScreen() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto scrollbar-thin p-3 space-y-2">
+            <div aria-label="Order line items" tabIndex={0} className="scrollbar-thin min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-3 focus-visible:outline-2 focus-visible:outline-ring">
               {cart.length === 0 ? (
                 <div className="text-center text-muted-foreground text-sm py-12">
                   <div className="text-4xl mb-2">🛒</div>
@@ -210,7 +211,7 @@ function POSScreen() {
             </div>
 
             {/* Totals */}
-            <div className="border-t bg-card p-4 space-y-1.5 text-sm">
+            <div className="z-10 shrink-0 space-y-1.5 border-t bg-card px-4 py-3 text-sm shadow-[0_-8px_24px_-16px_rgba(0,0,0,0.28)]">
               <Row label="Subtotal" value={money(totals.subtotal, settings.currency)} />
               {totals.itemDiscount > 0 && <Row label="Item discount" value={"− " + money(totals.itemDiscount, settings.currency)} muted />}
               <div className="flex items-center justify-between">
