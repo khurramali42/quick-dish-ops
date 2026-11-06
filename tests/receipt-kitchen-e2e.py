@@ -28,7 +28,7 @@ with sync_playwright() as browser_api:
     assert page.evaluate("window.__printCalls") == 1, "Print button did not call native window.print()"
     page.emulate_media(media="print")
     assert paper.evaluate("(node) => getComputedStyle(node).display") == "block", "Print paper is hidden under print media"
-    assert page.locator("#root").evaluate("(node) => getComputedStyle(node).display") == "none", "App chrome still printed"
+    assert page.evaluate("() => Array.from(document.body.children).filter(el => el.id !== 'receipt-print-root' && el.tagName !== 'SCRIPT').every(el => getComputedStyle(el).display === 'none')"), "App chrome still printed"
     page.screenshot(path=str(OUT / "receipt-print-preview.png"), full_page=True)
     page.emulate_media(media="screen")
     page.get_by_role("button", name="Close receipt").click()
