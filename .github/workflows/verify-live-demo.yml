@@ -1,0 +1,30 @@
+name: Verify public Vercel demo routes
+on:
+  push:
+    branches: [ops/verify-live-vercel-demo]
+    paths: [".github/workflows/verify-live-demo.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  routes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Verify deployed Dashboard, POS and Orders
+        shell: bash
+        run: |
+          set -euo pipefail
+          for route in / /pos /orders; do
+            url="https://quick-dish-ops.vercel.app${route}"
+            status="$(curl -sSL --max-time 35 -o /tmp/page.html -w '%{http_code}' "$url")"
+            echo "$route returned HTTP $status"
+            test "$status" = "200"
+            if grep -qiE '(This page didn.t load|Vercel Authentication|Authentication Required|Application error)' /tmp/page.html; then
+              echo "Unexpected error/protection page on $route"
+              exit 1
+            fi
+            grep -qiE '(Spice Kitchen|<html|__TSR)' /tmp/page.html
+          done
