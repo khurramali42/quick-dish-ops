@@ -23,7 +23,7 @@ export function AppLayout({ children, fullBleed = false }: { children: ReactNode
   };
   return (
     <div className={fullBleed ? "flex h-dvh min-h-0 w-full overflow-hidden bg-background" : "flex min-h-dvh w-full bg-background"}>
-      {!collapsed && <AppSidebar />}
+      <AppSidebar collapsed={collapsed} />
       <main className={fullBleed ? "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden" : "flex min-w-0 flex-1 flex-col"}>
         <MobileNavigation fullscreen={fullscreen} onToggleFullscreen={toggleFullscreen} />
         <header className="hidden h-[68px] shrink-0 items-center justify-between gap-5 border-b bg-card px-5 shadow-[0_2px_12px_rgba(52,26,12,0.03)] lg:flex xl:px-8">

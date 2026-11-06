@@ -23,25 +23,26 @@ const nav = [
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
-export function AppSidebar() {
+export function AppSidebar({ collapsed = false }: { collapsed?: boolean }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const branchName = useStore((state) => state.settings.branchName);
   const darkMode = useStore((state) => state.darkMode);
   const toggleDark = useStore((state) => state.toggleDark);
+  const [hoveredTab, setHoveredTab] = useState<{ label: string; top: number } | null>(null);
 
   return (
-    <aside className="sticky top-0 hidden h-dvh w-[206px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:flex xl:w-[228px]">
-      <div className="flex items-center gap-3 border-b border-sidebar-border px-4 py-5">
+    <aside aria-label="Main navigation" className={cn("sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-150 lg:flex", collapsed ? "w-[72px]" : "w-[206px] xl:w-[228px]")}>
+      <div className={cn("flex items-center border-b border-sidebar-border py-5", collapsed ? "justify-center px-2" : "gap-3 px-4")}>
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 text-brand">
           <ChefHat className="h-7 w-7" />
         </div>
-        <div className="min-w-0">
+        <div className={cn("min-w-0", collapsed && "hidden")}>
           <div className="truncate font-display text-sm font-extrabold tracking-tight">Spice Kitchen <span className="text-brand">POS</span></div>
           <div className="truncate text-[11px] text-muted-foreground">{branchName}</div>
         </div>
       </div>
 
-      <nav className="scrollbar-thin flex-1 space-y-1 overflow-y-auto px-3 py-4">
+      <nav onScroll={() => setHoveredTab(null)} className={cn("scrollbar-thin flex-1 space-y-1 overflow-y-auto py-4", collapsed ? "px-2" : "px-3")}>
         {nav.map((n) => {
           const active = n.to === "/" ? pathname === "/" : pathname.startsWith(n.to);
           const Icon = n.icon;
@@ -49,8 +50,15 @@ export function AppSidebar() {
             <Link
               key={n.to}
               to={n.to}
+              title={collapsed ? n.label : undefined}
+              aria-label={n.label}
+              onMouseEnter={(event) => collapsed && setHoveredTab({ label: n.label, top: event.currentTarget.getBoundingClientRect().top + 7 })}
+              onMouseLeave={() => setHoveredTab(null)}
+              onFocus={(event) => collapsed && setHoveredTab({ label: n.label, top: event.currentTarget.getBoundingClientRect().top + 7 })}
+              onBlur={() => setHoveredTab(null)}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all",
+                "group relative flex items-center rounded-lg py-2.5 text-sm font-semibold transition-all",
+                collapsed ? "justify-center px-2" : "gap-3 px-3",
                 active
                   ? "bg-brand-gradient text-brand-foreground shadow-sm"
                   : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground opacity-90",
@@ -58,14 +66,19 @@ export function AppSidebar() {
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              <span className="truncate">{n.label}</span>
+              {!collapsed && <span className="truncate">{n.label}</span>}
             </Link>
           );
         })}
       </nav>
 
-      <div className="flex items-center justify-between border-t border-sidebar-border px-3 py-3">
-        <div className="text-[11px] opacity-60 px-2">v1.0 · PKR</div>
+      {collapsed && hoveredTab && (
+        <div role="tooltip" className="pointer-events-none fixed left-[78px] z-[100] whitespace-nowrap rounded-lg bg-foreground px-3 py-2 text-xs font-semibold text-background shadow-xl" style={{ top: hoveredTab.top }}>
+          {hoveredTab.label}
+        </div>
+      )}
+      <div className={cn("flex items-center border-t border-sidebar-border px-3 py-3", collapsed ? "justify-center" : "justify-between")}>
+        {!collapsed && <div className="text-[11px] opacity-60 px-2">v1.0 · PKR</div>}
         <button
           onClick={toggleDark}
           className="p-2 rounded-lg hover:bg-sidebar-accent"
