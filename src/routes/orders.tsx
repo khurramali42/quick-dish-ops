@@ -19,7 +19,7 @@ function OrdersPage() {
   const [status, setStatus] = useState<"all" | "completed" | "refunded">("all");
   const shown = orders.filter((o) => status === "all" || o.status === status);
 
-  const total = shown.reduce((s, o) => s + (o.status === "refunded" ? 0 : o.total), 0);
+  const total = shown.reduce((s, o) => s + (o.status === "refunded" || o.status === "cancelled" ? 0 : o.total), 0);
 
   return (
     <AppLayout>
@@ -31,7 +31,7 @@ function OrdersPage() {
             <button key={s} onClick={() => setStatus(s)} className={`px-3 py-1.5 rounded-md text-sm capitalize ${status === s ? "bg-brand-gradient text-brand-foreground" : "hover:bg-accent"}`}>{s}</button>
           ))}
         </div>
-        <table className="w-full text-sm">
+        <div className="table-scroll"><table className="w-full text-sm">
           <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
             <tr>
               <th className="text-left px-4 py-2">Invoice</th>
@@ -66,7 +66,7 @@ function OrdersPage() {
             ))}
             {shown.length === 0 && <tr><td colSpan={8} className="text-center text-muted-foreground py-16">No orders yet.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       <ReceiptDialog order={receipt} onClose={() => setReceipt(null)} />
