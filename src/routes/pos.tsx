@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
 import { useStore, useCartTotals } from "@/lib/store";
 import { money } from "@/lib/format";
@@ -6,7 +6,7 @@ import type { OrderType, PaymentMethod, Product } from "@/lib/types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Search, X, Plus, Minus, ChevronLeft, ChevronRight, Trash2, Pause, Play, Printer, Percent, CreditCard, ClipboardList, Clock3, CheckCircle2,
-  Utensils, Bike, ShoppingBag, Truck, Keyboard, User, StickyNote,
+  Utensils, Bike, ShoppingBag, Truck, Keyboard, User, StickyNote, Bell, Settings2, PanelLeftOpen, PanelLeftClose,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -49,6 +49,8 @@ function POSScreen() {
   const [queueFilter, setQueueFilter] = useState<"all" | "held" | "ready">("all");
   const [selectedPastOrder, setSelectedPastOrder] = useState<Order | null>(null);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [queueOpen, setQueueOpen] = useState(false);
+  const [billPrintOpen, setBillPrintOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
 
@@ -98,38 +100,38 @@ function POSScreen() {
   return (
     <AppLayout fullBleed>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        {/* Reference layout: compact search top bar, order workflow controls, and three work panes. */}
-        <div className="shrink-0 border-b bg-card">
-          <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2.5 sm:px-4">
-            <div className="relative min-w-[170px] flex-1 sm:max-w-md">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search products" placeholder="Search products, menu or SKU... (F1)" className="h-10 w-full rounded-full bg-muted/70 pl-10 pr-9 text-sm outline-none ring-1 ring-transparent transition focus:bg-background focus:ring-ring/50" />
-              {search && <button onClick={() => setSearch("")} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"><X className="h-4 w-4" /></button>}
-            </div>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setHeldOpen(true)} className="flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold hover:bg-muted"><ClipboardList className="h-3.5 w-3.5" /> Saved <span className="font-bold text-brand">{heldOrders.length}</span></button>
-              <button onClick={() => { if (cart.length && !confirm("Discard the current order and start a new one?")) return; clearCart(); setMobilePane("menu"); }} className="flex h-9 items-center gap-1.5 rounded-full bg-brand-gradient px-4 text-xs font-bold text-brand-foreground shadow-sm"><Plus className="h-4 w-4" /> New Order</button>
-            </div>
+        <header className="flex h-[52px] shrink-0 items-center justify-between gap-2 border-b bg-card px-3">
+          <div className="relative w-[200px] max-w-[50%] sm:w-[248px]"><Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" /><input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search products" placeholder="Search products..." className="h-8 w-full rounded-full bg-[#f5f5f5] pl-9 pr-7 text-[11px] outline-none focus:ring-1 focus:ring-brand dark:bg-muted" />{search && <button title="Clear search" onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2"><X className="h-3 w-3" /></button>}</div>
+          <div className="flex items-center gap-1.5">
+            <button title="Saved orders" onClick={() => setHeldOpen(true)} className="relative flex h-8 w-8 items-center justify-center rounded-full border hover:bg-muted"><Bell className="h-4 w-4" />{heldOrders.length > 0 && <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-brand" />}</button>
+            <button title="Keyboard shortcuts" onClick={() => setHelpOpen(true)} className="flex h-8 w-8 items-center justify-center rounded-full border hover:bg-muted"><Settings2 className="h-4 w-4" /></button>
+            <Link to="/tables" title="Tables" className="flex h-8 w-8 items-center justify-center rounded-full border hover:bg-muted"><Utensils className="h-4 w-4" /></Link>
+            <span className="hidden items-center gap-2 rounded-full border px-2 py-1 sm:flex"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-100 text-[11px] font-bold text-brand">{currentCashier.slice(0,1).toUpperCase()}</span><span className="max-w-20 truncate text-[11px] font-semibold">{currentCashier}<small className="block text-[9px] font-normal text-muted-foreground">Cashier</small></span></span>
           </div>
-          <div className="flex flex-wrap items-center gap-2 border-t bg-card px-3 py-2 sm:px-4">
-            <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-muted/65 p-1">
-              {orderTypes.map((type) => { const Icon = type.icon; return <button key={type.key} onClick={() => setOrderType(type.key)} aria-pressed={orderType === type.key} className={`flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition ${orderType === type.key ? "bg-brand-gradient text-brand-foreground shadow-sm" : "text-muted-foreground hover:bg-card"}`}><Icon className="h-3.5 w-3.5" />{type.label}</button>; })}
-            </div>
-            {orderType === "dine-in" && <select aria-label="Choose table" value={table ?? ""} onChange={(e) => setTable(e.target.value || undefined)} className="h-9 min-w-[110px] rounded-full border bg-card px-3 text-xs"><option value="">Select Table</option>{restaurantTables.filter((item) => item.enabled).map((item) => <option key={item.id} value={item.label}>{item.label} · {item.seats} seats</option>)}</select>}
-            <select aria-label="Choose customer" value={customerId ?? ""} onChange={(e) => setCustomer(e.target.value || undefined)} className="h-9 max-w-[170px] rounded-full border bg-card px-3 text-xs"><option value="">Walk-in customer</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}</select>
-            <span className="ml-auto hidden text-xs font-semibold text-muted-foreground 2xl:inline">Cashier: {currentCashier}</span>
+        </header>
+        <div className="flex h-[43px] shrink-0 items-center justify-between gap-2 border-b bg-[#fff0ec] px-2 dark:bg-muted sm:px-3">
+          <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto">
+            <button onClick={() => setQueueOpen((prev) => !prev)} aria-expanded={queueOpen} title="Toggle order list" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-card text-brand shadow-sm">{queueOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}</button>
+            <button onClick={() => setReviewOpen(true)} className="h-8 shrink-0 rounded-lg border border-orange-200 bg-card px-3 text-[11px] font-bold">Current Order {itemCount ? "(" + itemCount + ")" : ""}</button>
+            {heldOrders.slice(-2).reverse().map((held) => <button key={held.id} onClick={() => { try { recallOrder(held.id); toast.success("Order resumed"); } catch (error) { toast.error(error instanceof Error ? error.message : "Unable to resume"); } }} className="flex h-8 shrink-0 items-center gap-1 rounded-lg border border-orange-200 bg-[#ffe4dd] px-2 text-[10px] font-semibold dark:bg-card">#{held.id.slice(-5)} <Play className="h-3 w-3" /></button>)}
           </div>
+          <button onClick={() => { if (cart.length && !confirm("Discard the current order?")) return; clearCart(); setMobilePane("menu"); setSelectedTicketId(null); }} className="flex h-8 shrink-0 items-center gap-1 rounded-full bg-brand-gradient px-3 text-[11px] font-bold text-brand-foreground"><Plus className="h-3.5 w-3.5" /> New Order</button>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b bg-card px-3 py-1.5">
+          {orderTypes.map((type) => { const Icon = type.icon; return <button key={type.key} onClick={() => setOrderType(type.key)} aria-pressed={orderType === type.key} className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold ${orderType === type.key ? "border-brand bg-orange-50 text-brand" : "hover:bg-muted"}`}><Icon className="h-3 w-3" />{type.label}</button>; })}
+          {orderType === "dine-in" && <select aria-label="Choose table" value={table ?? ""} onChange={(e) => setTable(e.target.value || undefined)} className="h-7 rounded-full border bg-card px-2 text-[10px]"><option value="">Select Table</option>{restaurantTables.filter((item) => item.enabled).map((item) => <option key={item.id} value={item.label}>{item.label}</option>)}</select>}
+          <select aria-label="Choose customer" value={customerId ?? ""} onChange={(e) => setCustomer(e.target.value || undefined)} className="h-7 max-w-[130px] rounded-full border bg-card px-2 text-[10px]"><option value="">Walk-in</option>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}</select>
         </div>
         <div className="flex shrink-0 gap-2 border-b bg-card px-3 py-2 md:hidden">
           <button type="button" onClick={() => setMobilePane("menu")} className={mobilePane === "menu" ? "flex-1 rounded-lg bg-brand-gradient px-3 py-2 text-sm font-semibold text-brand-foreground" : "flex-1 rounded-lg bg-muted px-3 py-2 text-sm font-semibold text-foreground"}>Menu</button>
           <button type="button" onClick={() => setMobilePane("cart")} className={mobilePane === "cart" ? "flex-1 rounded-lg bg-brand-gradient px-3 py-2 text-sm font-semibold text-brand-foreground" : "flex-1 rounded-lg bg-muted px-3 py-2 text-sm font-semibold text-foreground"}>Order ({cart.reduce((n, item) => n + item.qty, 0)})</button>
         </div>
         {/* Every pane has an independent scroll area. */}
-        <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div className="relative flex min-h-0 flex-1 overflow-hidden">
           {/* Desktop order queue. Clicking a saved ticket safely resumes it only when the current cart is empty. */}
-          <aside aria-label="Order queue" className="hidden min-h-0 w-[215px] shrink-0 flex-col border-r bg-card lg:flex 2xl:w-[245px]">
+          <aside aria-label="Order queue" className={`${queueOpen ? "absolute inset-y-0 left-0 z-30 flex" : "hidden"} min-h-0 w-[225px] shrink-0 flex-col border-r bg-card shadow-xl 2xl:w-[245px]`}>
             <div className="shrink-0 border-b px-3 py-3.5">
-              <div className="flex items-center justify-between"><h2 className="text-sm font-extrabold">Order List</h2><button onClick={() => setHeldOpen(true)} className="text-[11px] font-bold text-brand hover:underline">Select ({heldOrders.length + orders.length})</button></div>
+              <div className="flex items-center justify-between"><h2 className="text-sm font-extrabold">Order List</h2><button onClick={() => setQueueOpen(false)} aria-label="Close order list" className="p-1"><X className="h-3.5 w-3.5" /></button><button onClick={() => setHeldOpen(true)} className="text-[11px] font-bold text-brand hover:underline">Select ({heldOrders.length + orders.length})</button></div>
               <div className="mt-2 flex gap-1">
                 {(["all", "held", "ready"] as const).map((filter) => <button key={filter} onClick={() => setQueueFilter(filter)} className={`flex-1 border-b-2 px-1.5 py-2 text-[11px] font-semibold capitalize transition ${queueFilter === filter ? "border-brand text-brand" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{filter === "held" ? "Pending" : filter}</button>)}
               </div>
@@ -160,8 +162,8 @@ function POSScreen() {
             <button type="button" aria-label="Scroll categories left" onClick={() => categoryScrollRef.current?.scrollBy({ left: -280, behavior: "smooth" })} className="shrink-0 border-r px-1.5 text-brand hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring sm:px-2">
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <div ref={categoryScrollRef} aria-label="Product categories" tabIndex={0} className="pos-menu-tabs flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto overscroll-x-contain px-2 py-2.5 sm:px-3">
-              <CatBtn active={activeCategory === "all"} onClick={() => setCategory("all")} icon="🍽️" label="All Items" />
+            <div ref={categoryScrollRef} aria-label="Product categories" tabIndex={0} className="pos-menu-tabs flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto overscroll-x-contain px-2 py-1.5 sm:px-3">
+              <CatBtn active={activeCategory === "all"} onClick={() => setCategory("all")} icon="🍽️" label="All Menu" />
               {categories.filter((c) => c.active).map((c) => (
                 <CatBtn key={c.id} active={activeCategory === c.id} onClick={() => setCategory(c.id)} icon={c.icon} label={c.name} />
               ))}
@@ -172,9 +174,9 @@ function POSScreen() {
           </div>
 
           {/* Product grid */}
-          <div className="scrollbar-thin min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-[#fff9f7] p-2.5 dark:bg-background sm:p-3 xl:p-4">
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,170px),1fr))] gap-3 xl:gap-3.5">
-              {filtered.map((p) => <ProductCard key={p.id} product={p} onSelect={() => addToCart(p)} />)}
+          <div className="scrollbar-thin min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-[#fff2ee] p-2 dark:bg-background sm:p-3">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:gap-3.5">
+              {filtered.map((p) => <ProductCard key={p.id} product={p} quantity={cart.filter((item) => item.productId === p.id).reduce((n, item) => n + item.qty, 0)} onSelect={() => addToCart(p)} onDecrease={() => { const line = cart.find((item) => item.productId === p.id); if (line) { if (line.qty > 1) updateQty(line.lineId, line.qty - 1); else removeLine(line.lineId); } }} />)}
               {filtered.length === 0 && (
                 <div className="col-span-full text-center text-muted-foreground py-16">No items match.</div>
               )}
@@ -184,10 +186,10 @@ function POSScreen() {
 
           </div>
           {/* Current order with pinned totals. */}
-          <section aria-label="Current order" className={mobilePane === "cart" ? "flex min-h-0 w-full min-w-0 shrink-0 flex-col overflow-hidden border-l bg-card md:flex md:w-[290px] lg:w-[300px] xl:w-[305px] 2xl:w-[350px]" : "hidden min-h-0 w-full min-w-0 shrink-0 flex-col overflow-hidden border-l bg-card md:flex md:w-[290px] lg:w-[300px] xl:w-[305px] 2xl:w-[350px]"}>
+          <section aria-label="Current order" className={mobilePane === "cart" ? "flex min-h-0 w-full min-w-0 shrink-0 flex-col overflow-hidden border-l bg-card md:flex md:w-[290px] lg:w-[310px] xl:w-[320px] 2xl:w-[350px]" : "hidden min-h-0 w-full min-w-0 shrink-0 flex-col overflow-hidden border-l bg-card md:flex md:w-[290px] lg:w-[300px] xl:w-[305px] 2xl:w-[350px]"}>
             <div className="flex shrink-0 items-center justify-between border-b bg-card px-3 py-3">
               <div>
-                <div className="text-sm font-extrabold">Current Order <span className="ml-1 text-[11px] font-medium text-muted-foreground">· {itemCount} items</span></div>
+                <div className="text-[10px] text-muted-foreground">Order No.</div><div className="text-sm font-extrabold">Current Order</div>
                 <div className="text-xs text-muted-foreground">
                   {orderType}{table ? ` · ${table}` : ""} · {cart.reduce((n, item) => n + item.qty, 0)} units
                 </div>
