@@ -104,6 +104,10 @@ export interface ParkedOrder {
   status?: ParkedOrderStatus; // Legacy held orders have no status.
   reason?: string;
   cashier?: string;
+  kitchenStatus?: "new" | "preparing" | "ready" | "served";
+  kitchenDoneLineIds?: string[];
+  kitchenChef?: string;
+  kitchenDispatchedAt?: string;
 }
 
 export interface Customer {
