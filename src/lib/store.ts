@@ -1,5 +1,10 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist, type StateStorage } from "zustand/middleware";
+
+// Hosted owner workspaces must never store customer/order data in browser localStorage.
+// The hosted backend adapter handles authenticated persistence instead.
+const noBrowserStorage: StateStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+const hostedConfigPresent = Boolean(import.meta.env?.VITE_SUPABASE_URL || import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY);
 import type {
   CartItem, Category, Customer, Expense, Order, OrderType, PaymentMethod,
   Product, Purchase, Settings, Supplier, SupplierSettlement, ActivityEvent, RefundRequest, ParkedOrder, ParkedOrderStatus, RestaurantTable, TableReservation, ReservationStatus,
@@ -621,11 +626,14 @@ export const useStore = create<State>()(
         });
       },
       resetAll: () => {
+        if (hostedConfigPresent) throw new Error("Hosted workspace cannot be reset from the browser. Use account-owned database backups and administrator tooling.");
         localStorage.removeItem("spice-pos-v1");
         location.reload();
       },
     }),
-    { name: "spice-pos-v1" },
+    { name: "spice-pos-v1", storage: createJSONStorage(() =>
+      typeof window !== "undefined" && !hostedConfigPresent ? window.localStorage : noBrowserStorage,
+    ) },
   ),
 );
 
