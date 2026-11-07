@@ -169,6 +169,17 @@ export interface SupplierSettlement {
   note?: string;
 }
 
+export interface RefundRequest {
+  id: string;
+  orderId: string;
+  reason: string;
+  requestedBy: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+  resolvedBy?: string;
+  resolvedAt?: string;
+}
+
 export interface ActivityEvent {
   id: string;
   createdAt: string;
