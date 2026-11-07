@@ -216,6 +216,7 @@ export const useStore = create<State>()(
             modifiers: [],
             discount: 0,
             taxRate: product.taxRate,
+            unitCostSnapshot: product.cost,
           });
         }
         set({ cart });
@@ -349,7 +350,7 @@ export const useStore = create<State>()(
           customerName: customer?.name,
           table,
           orderType,
-          items: cart,
+          items: cart.map((item) => ({ ...item, modifiers: item.modifiers.map((m) => ({ ...m })), unitCostSnapshot: products.find((p) => p.id === item.productId)?.cost ?? item.unitCostSnapshot ?? 0 })),
           subtotal: t.subtotal,
           itemDiscount: t.itemDiscount,
           billDiscount: t.appliedBillDiscount,
@@ -387,25 +388,47 @@ export const useStore = create<State>()(
         const idx = list.findIndex((x) => x.id === p.id);
         set({ products: idx >= 0 ? list.map((x) => x.id === p.id ? p : x) : [...list, p] });
       },
-      deleteProduct: (id) => set({ products: get().products.filter((p) => p.id !== id) }),
+      deleteProduct: (id) => {
+        const state = get();
+        if (state.cart.some((line) => line.productId === id) || state.heldOrders.some((order) => order.cart.some((line) => line.productId === id)) ||
+          state.orders.some((order) => order.items.some((line) => line.productId === id)) || state.purchases.some((purchase) => purchase.items.some((line) => line.productId === id))) {
+          throw new Error("This product is referenced by orders, stock purchases or an active cart. Mark it unavailable instead.");
+        }
+        set({ products: state.products.filter((p) => p.id !== id) });
+      },
       upsertCategory: (c) => {
         const list = get().categories;
         const idx = list.findIndex((x) => x.id === c.id);
         set({ categories: idx >= 0 ? list.map((x) => x.id === c.id ? c : x) : [...list, c] });
       },
-      deleteCategory: (id) => set({ categories: get().categories.filter((c) => c.id !== id) }),
+      deleteCategory: (id) => {
+        if (get().products.some((p) => p.categoryId === id)) throw new Error("Category contains products. Reassign products before deleting.");
+        set({ categories: get().categories.filter((c) => c.id !== id) });
+      },
       upsertCustomer: (c) => {
         const list = get().customers;
         const idx = list.findIndex((x) => x.id === c.id);
         set({ customers: idx >= 0 ? list.map((x) => x.id === c.id ? c : x) : [...list, c] });
       },
-      deleteCustomer: (id) => set({ customers: get().customers.filter((c) => c.id !== id) }),
+      deleteCustomer: (id) => {
+        if (get().orders.some((order) => order.customerId === id) || get().heldOrders.some((order) => order.customerId === id) || get().customerId === id && get().cart.length > 0) {
+          throw new Error("Customer is linked to a completed or active order. Keep the record for history.");
+        }
+        set({ customers: get().customers.filter((c) => c.id !== id), customerId: get().customerId === id ? undefined : get().customerId });
+      },
       upsertSupplier: (s) => {
         const list = get().suppliers;
         const idx = list.findIndex((x) => x.id === s.id);
         set({ suppliers: idx >= 0 ? list.map((x) => x.id === s.id ? s : x) : [...list, s] });
       },
-      deleteSupplier: (id) => set({ suppliers: get().suppliers.filter((s) => s.id !== id) }),
+      deleteSupplier: (id) => {
+        const supplier = get().suppliers.find((s) => s.id === id);
+        if (!supplier) return;
+        if (get().purchases.some((p) => p.supplierId === id) || supplier.balance !== 0) {
+          throw new Error("Supplier has purchase history or outstanding balance and cannot be deleted.");
+        }
+        set({ suppliers: get().suppliers.filter((s) => s.id !== id) });
+      },
 
       addPurchase: (p) => {
         if (!p.items.length || !p.items.every((item) => item.productId && Number.isInteger(item.qty) && item.qty > 0 && Number.isFinite(item.cost) && item.cost >= 0 && get().products.some((product) => product.id === item.productId))) {
@@ -423,14 +446,21 @@ export const useStore = create<State>()(
           const received = p.items.filter((i) => i.productId === prod.id).reduce((sum, i) => sum + i.qty, 0);
           return received ? { ...prod, stock: prod.stock + received } : prod;
         });
-        set({ purchases: [purchase, ...get().purchases], products });
+        set({ purchases: [purchase, ...get().purchases], products,
+          suppliers: get().suppliers.map((supplier) => supplier.id === p.supplierId ? { ...supplier, balance: supplier.balance + (p.total - p.paid) } : supplier),
+        });
       },
       addExpense: (e) => set({ expenses: [{ ...e, id: shortId("E") }, ...get().expenses] }),
       updateSettings: (s) => set({ settings: { ...get().settings, ...s } }),
       setKitchenStatus: (id, status) => set({
-        orders: get().orders.map((order) =>
-          order.id === id && order.status === "completed" ? { ...order, kitchenStatus: status } : order,
-        ),
+        orders: get().orders.map((order) => {
+          if (order.id !== id || order.status !== "completed") return order;
+          const current = order.kitchenStatus ?? "new";
+          const transitions: Record<string, string> = { new: "preparing", preparing: "ready", ready: "served" };
+          if (transitions[current] !== status) return order;
+          if (status === "ready" && order.items.some((item) => !(order.kitchenDoneLineIds ?? []).includes(item.lineId))) return order;
+          return { ...order, kitchenStatus: status };
+        }),
       }),
       toggleKitchenItem: (orderId, lineId) => set({
         orders: get().orders.map((order) => {
