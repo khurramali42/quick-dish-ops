@@ -4,6 +4,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 import { useStore } from "@/lib/store";
+import { BackendGate } from "@/components/BackendGate";
 
 function NotFoundComponent() {
   return (
@@ -95,7 +96,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <BackendGate><Outlet /></BackendGate>
       <Toaster position="top-right" richColors />
     </QueryClientProvider>
   );

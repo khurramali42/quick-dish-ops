@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { CircleUserRound, ClipboardList, Info, PanelLeftClose, PanelLeftOpen, Maximize, Minimize } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { backendConfigured } from "@/lib/optional-backend";
 import { AppSidebar, MobileNavigation } from "./AppSidebar";
 
 export function AppLayout({ children, fullBleed = false }: { children: ReactNode; fullBleed?: boolean }) {
@@ -39,10 +40,10 @@ export function AppLayout({ children, fullBleed = false }: { children: ReactNode
             </button>
             <details className="group relative">
               <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring">
-                <Info className="h-3.5 w-3.5" /> Demo mode
+                <Info className="h-3.5 w-3.5" /> {backendConfigured ? "Own workspace" : "Demo mode"}
               </summary>
               <div role="note" className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border bg-popover p-3 text-xs leading-relaxed text-popover-foreground shadow-lg">
-                Sample data is stored only in this browser. This demo does not process actual payments or use a shared database.
+                {backendConfigured ? "Signed-in data is saved to your own project with account-scoped RLS. This remains a demo checkout: no payment provider or shared employee roles." : "Sample data is stored only in this browser. This demo does not process actual payments or use a shared database."}
               </div>
             </details>
             <Link to="/orders" title="View orders" aria-label="View orders" className="flex h-9 w-9 items-center justify-center rounded-full border border-transparent text-muted-foreground transition hover:border-border hover:bg-accent hover:text-brand">

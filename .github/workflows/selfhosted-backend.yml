@@ -1,0 +1,60 @@
+name: Self-hosted credential and workspace smoke
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/lib/optional-backend.ts"
+      - "src/components/BackendGate.tsx"
+      - "src/routes/__root.tsx"
+      - "src/lib/store.ts"
+      - "tests/selfhosted-browser-smoke.py"
+      - ".github/workflows/selfhosted-backend.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  own-database:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      # These public, nonexistent values only exercise the optional compile path.
+      # Playwright intercepts all requests. No live project or secret is used.
+      VITE_SUPABASE_URL: https://example.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_example_for_tests_only
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install, unit test, and compile configured app
+        run: |
+          bun install --frozen-lockfile
+          bun test
+          bun run build
+      - name: Install Chromium
+        run: |
+          python3 -m pip install --break-system-packages playwright==1.56.0
+          python3 -m playwright install --with-deps chromium
+      - name: Start isolated test server
+        run: |
+          PORT=3000 bun run start > /tmp/self-hosted-smoke-server.log 2>&1 &
+          for attempt in $(seq 1 40); do
+            curl -fsS http://127.0.0.1:3000/ -o /dev/null && exit 0
+            sleep 2
+          done
+          cat /tmp/self-hosted-smoke-server.log
+          exit 1
+      - name: Test login and owned workspace with mocked API
+        run: python3 tests/selfhosted-browser-smoke.py
+      - name: Upload screenshot evidence
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: own-backend-auth-smoke
+          path: /tmp/selfhosted-auth-demo.png
+          if-no-files-found: ignore
+      - name: Server logs on failure
+        if: failure()
+        run: cat /tmp/self-hosted-smoke-server.log || true
