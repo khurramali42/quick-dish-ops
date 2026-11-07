@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type {
   CartItem, Category, Customer, Expense, Order, OrderType, PaymentMethod,
-  Product, Purchase, Settings, Supplier, ParkedOrder, ParkedOrderStatus, RestaurantTable, TableReservation, ReservationStatus,
+  Product, Purchase, Settings, Supplier, SupplierSettlement, ActivityEvent, ParkedOrder, ParkedOrderStatus, RestaurantTable, TableReservation, ReservationStatus,
 } from "./types";
 import {
   seedCategories, seedCustomers, seedProducts, seedSettings, seedSuppliers,
@@ -27,6 +27,7 @@ interface State {
   orders: Order[];
   purchases: Purchase[];
   expenses: Expense[];
+  activityLog: ActivityEvent[];
   settings: Settings;
   restaurantTables: RestaurantTable[];
   reservations: TableReservation[];
@@ -86,6 +87,9 @@ interface State {
   upsertSupplier: (s: Supplier) => void;
   deleteSupplier: (id: string) => void;
   addPurchase: (p: Omit<Purchase, "id" | "invoiceNo">) => void;
+  settlePurchase: (purchaseId: string, amount: number, method: PaymentMethod, note?: string) => void;
+  recordWaste: (productId: string, qty: number, reason: string) => void;
+  setRecipe: (productId: string, lines: NonNullable<Product["recipe"]>) => void;
   addExpense: (e: Omit<Expense, "id">) => void;
   updateSettings: (s: Partial<Settings>) => void;
   refundOrder: (id: string) => void;
@@ -120,6 +124,7 @@ export const useStore = create<State>()(
       orders: [],
       purchases: [],
       expenses: [],
+      activityLog: [],
       settings: seedSettings,
       restaurantTables: initialTables,
       reservations: [],
@@ -453,6 +458,39 @@ export const useStore = create<State>()(
         });
         set({ purchases: [purchase, ...get().purchases], products,
           suppliers: get().suppliers.map((supplier) => supplier.id === p.supplierId ? { ...supplier, balance: supplier.balance + (p.total - p.paid) } : supplier),
+        });
+      },
+      settlePurchase: (purchaseId, amount, method, note) => {
+        const purchase = get().purchases.find((p) => p.id === purchaseId);
+        if (!purchase) throw new Error("Purchase not found.");
+        const remaining = purchase.total - purchase.paid;
+        if (!Number.isFinite(amount) || amount <= 0 || amount > remaining + 0.001) throw new Error("Enter an amount within the remaining purchase balance.");
+        if (!["cash", "card", "bank", "easypaisa", "jazzcash"].includes(method)) throw new Error("Invalid settlement method.");
+        const settlement: SupplierSettlement = { id: shortId("SP"), purchaseId, supplierId: purchase.supplierId, amount, method, date: todayISO(), note: note?.slice(0, 250) };
+        set({
+          purchases: get().purchases.map((p) => p.id === purchaseId ? { ...p, paid: p.paid + amount, settlements: [...(p.settlements ?? []), settlement] } : p),
+          suppliers: get().suppliers.map((supplier) => supplier.id === purchase.supplierId ? { ...supplier, balance: Math.max(0, supplier.balance - amount) } : supplier),
+          activityLog: [{ id: shortId("A"), createdAt: todayISO(), operator: get().currentCashier, action: "supplier.settlement", subjectId: purchaseId, details: `${amount} via ${method}` }, ...get().activityLog],
+        });
+      },
+      recordWaste: (productId, qty, reason) => {
+        const product = get().products.find((p) => p.id === productId);
+        if (!product?.trackStock) throw new Error("Choose a tracked inventory item.");
+        if (!Number.isInteger(qty) || qty < 1 || qty > product.stock) throw new Error("Waste quantity must be a whole number within available stock.");
+        if (!reason.trim()) throw new Error("A waste reason is required.");
+        set({
+          products: get().products.map((p) => p.id === productId ? { ...p, stock: p.stock - qty } : p),
+          activityLog: [{ id: shortId("A"), createdAt: todayISO(), operator: get().currentCashier, action: "inventory.waste", subjectId: productId, details: `${qty} units: ${reason.trim().slice(0,150)}` }, ...get().activityLog],
+        });
+      },
+      setRecipe: (productId, lines) => {
+        if (!get().products.some((p) => p.id === productId)) throw new Error("Recipe product not found.");
+        if (!Array.isArray(lines) || lines.some((line) => line.ingredientProductId === productId ||
+          !get().products.some((p) => p.id === line.ingredientProductId && p.trackStock) ||
+          !Number.isFinite(line.qty) || line.qty <= 0)) throw new Error("Recipe ingredients and positive quantities must refer to tracked stock items.");
+        set({
+          products: get().products.map((p) => p.id === productId ? { ...p, recipe: lines } : p),
+          activityLog: [{ id: shortId("A"), createdAt: todayISO(), operator: get().currentCashier, action: "recipe.updated", subjectId: productId, details: `${lines.length} ingredient lines` }, ...get().activityLog],
         });
       },
       addExpense: (e) => set({ expenses: [{ ...e, id: shortId("E") }, ...get().expenses] }),
