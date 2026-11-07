@@ -1,49 +1,94 @@
-name: Capture application screenshots
+name: Capture current application screenshots
 
-# Manual developer tool only. Original verified screenshots are already checked in.
+# On a PR, generate preview artifacts without writing to the repository.
+# Once merged into main, capture the latest real UI and commit the PNG updates.
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - scripts/capture-screenshots.py
+      - .github/workflows/capture-screenshots.yml
+      - README.md
+  push:
+    branches: [main]
+    paths:
+      - scripts/capture-screenshots.py
+      - .github/workflows/capture-screenshots.yml
+      - README.md
   workflow_dispatch:
-
-permissions:
-  contents: read
 
 jobs:
   screenshots:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      - name: Install and build
+      - name: Build application
         run: |
           bun install --frozen-lockfile
           bun run build
-      - name: Install browser
-        run: npx --yes playwright@1.56.1 install --with-deps chromium
-      - name: Start demo server
+      - name: Install Chromium
         run: |
-          PORT=3000 bun run start > /tmp/quick-dish-server.log 2>&1 &
+          python3 -m pip install --break-system-packages playwright==1.56.0
+          python3 -m playwright install --with-deps chromium
+      - name: Start production demo
+        run: |
+          PORT=3000 bun run start > /tmp/quick-dish-screenshot-server.log 2>&1 &
           for n in $(seq 1 40); do
-            if curl -fsS http://127.0.0.1:3000/ -o /dev/null; then exit 0; fi
+            curl -fsS http://127.0.0.1:3000/ -o /dev/null && exit 0
             sleep 2
           done
-          cat /tmp/quick-dish-server.log
+          cat /tmp/quick-dish-screenshot-server.log
           exit 1
-      - name: Capture original UI
+      - name: Capture actual current screens
+        run: python3 scripts/capture-screenshots.py
+      - name: Upload screenshot previews
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: refreshed-ui-screenshots
+          path: docs/screenshots/*.png
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Show server output when capture fails
+        if: failure()
+        run: cat /tmp/quick-dish-screenshot-server.log || true
+
+  publish-screenshots:
+    needs: screenshots
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          persist-credentials: true
+      - name: Get verified browser captures
+        uses: actions/download-artifact@v6
+        with:
+          name: refreshed-ui-screenshots
+          path: docs/screenshots
+      - name: Commit updated real screenshots
         run: |
-          mkdir -p docs/screenshots
-          npx --yes playwright@1.56.1 screenshot --browser chromium --viewport-size "1440,900" --wait-for-timeout 3500 http://127.0.0.1:3000/ docs/screenshots/dashboard.png
-          npx --yes playwright@1.56.1 screenshot --browser chromium --viewport-size "1600,1000" --wait-for-timeout 3500 http://127.0.0.1:3000/pos docs/screenshots/pos.png
-          npx --yes playwright@1.56.1 screenshot --browser chromium --viewport-size "1440,900" --wait-for-timeout 3500 http://127.0.0.1:3000/orders docs/screenshots/orders.png
           test -s docs/screenshots/dashboard.png
           test -s docs/screenshots/pos.png
-          test -s docs/screenshots/orders.png
-      - uses: actions/upload-artifact@v6
-        with:
-          name: actual-application-screenshots
-          path: docs/screenshots/*.png
-      - name: Show server logs on failure
-        if: failure()
-        run: cat /tmp/quick-dish-server.log || true
+          test -s docs/screenshots/kitchen.png
+          test -s docs/screenshots/tables.png
+          test -s docs/screenshots/mobile-pos.png
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/screenshots/
+          if git diff --cached --quiet; then
+            echo "Screenshots already match the latest application."
+          else
+            git commit -m "docs: refresh verified application screenshots [skip ci]"
+            git push origin HEAD:main
+          fi
