@@ -20,7 +20,7 @@ These are authentic browser screenshots from the application, using fictional de
 ## What you can explore
 
 - **POS:** menu and category browsing, item search, cart, discounts, tax, checkout simulation and receipt preview/printing with 58mm, 80mm or A4 options
-- **Orders and kitchen:** order history, simulated refunds and a local kitchen board with New → Preparing → Ready → Served; unpaid cart tickets can be sent to the local kitchen queue before checkout
+- **Orders and kitchen:** order history, demo-only refund review and a local kitchen board with New → Preparing → Ready → Served; unpaid cart tickets can be sent to the local kitchen queue before checkout
 - **Products and inventory:** categories, images, stock, ingredient recipes and reason-coded waste adjustments
 - **Purchasing:** supplier records, incoming stock, partial supplier invoice settlements and expense entries
 - **Customers and reports:** example customer records, basic sales summaries and financial snapshots
