@@ -56,6 +56,7 @@ interface State {
   setTable: (t?: string) => void;
   setCustomer: (id?: string) => void;
   setBillDiscount: (n: number) => void;
+  setCurrentCashier: (name: string) => void;
   toggleDark: () => void;
 
   addToCart: (product: Product, variant?: string) => void;
@@ -189,6 +190,7 @@ export const useStore = create<State>()(
       setTable: (t) => set({ table: t }),
       setCustomer: (id) => set({ customerId: id }),
       setBillDiscount: (n) => set({ billDiscount: Number.isFinite(n) ? Math.max(0, n) : 0 }),
+      setCurrentCashier: (name) => { if (!name.trim()) throw new Error("Enter a demo operator name."); set({ currentCashier: name.trim().slice(0, 60) }); },
       toggleDark: () => {
         const d = !get().darkMode;
         set({ darkMode: d });
@@ -205,6 +207,7 @@ export const useStore = create<State>()(
         const existing = cart.find((c) => c.productId + "|" + (c.variant ?? "") === key && c.modifiers.length === 0);
         if (existing) {
           existing.qty += 1;
+          if (existing.discountPercent !== undefined) existing.discount = existing.unitPrice * existing.qty * existing.discountPercent / 100;
         } else {
           cart.push({
             lineId: shortId("L"),
@@ -326,6 +329,8 @@ export const useStore = create<State>()(
         const { cart, billDiscount, settings, orderType, table, customerId, customers, currentCashier, products } = get();
         const t = cartTotals(cart, billDiscount, settings.serviceChargePct);
         if (cart.length === 0) throw new Error("Add at least one product before checkout.");
+        if (!["cash", "card", "bank", "easypaisa", "jazzcash"].includes(method)) throw new Error("Invalid payment method.");
+        if (orderType === "dine-in" && table && !get().restaurantTables.some((t) => t.label === table && t.enabled)) throw new Error("Selected table is unavailable.");
         if (!Number.isFinite(paid) || paid < t.total || paid < 0) {
           throw new Error("Payment must cover the total bill.");
         }
@@ -479,11 +484,9 @@ export const useStore = create<State>()(
         const { orders, products, customers } = get();
         const order = orders.find((o) => o.id === id);
         if (!order || order.status === "refunded") return;
-        const nextProducts = products.map((p) => {
-          if (!p.trackStock) return p;
-          const returned = order.items.filter((item) => item.productId === p.id).reduce((sum, item) => sum + item.qty, 0);
-          return returned ? { ...p, stock: p.stock + returned } : p;
-        });
+        // Mark refunded sale void; food already prepared or consumed is not automatically restockable.
+        // Manual stock adjustments are handled by Inventory when physical goods are returned.
+        const nextProducts = products;
         const nextCustomers = customers.map((c) => c.id === order.customerId
           ? { ...c, totalSpent: Math.max(0, c.totalSpent - order.total), loyaltyPoints: Math.max(0, c.loyaltyPoints - Math.floor(order.total / 100)) }
           : c);
