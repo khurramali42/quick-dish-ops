@@ -347,58 +347,84 @@ function PaymentDialog({ open, onClose, onDone }: { open: boolean; onClose: () =
   const [paid, setPaid] = useState(0);
   useEffect(() => { if (open) setPaid(Math.ceil(totals.total)); }, [open, totals.total]);
   const change = Math.max(0, paid - totals.total);
+  const remaining = Math.max(0, totals.total - paid);
+  const canComplete = Number.isFinite(paid) && paid >= totals.total && paid >= 0 && cart.length > 0;
+  const count = cart.reduce((sum, item) => sum + item.qty, 0);
 
   const quick = [100, 500, 1000, 2000, 5000];
-  const methods: { k: PaymentMethod; label: string }[] = [
-    { k: "cash", label: "Cash" }, { k: "card", label: "Card" }, { k: "bank", label: "Bank" },
-    { k: "easypaisa", label: "Easypaisa" }, { k: "jazzcash", label: "JazzCash" },
+  const methods: { k: PaymentMethod; label: string; hint: string }[] = [
+    { k: "cash", label: "Cash", hint: "Notes & coins" },
+    { k: "card", label: "Card", hint: "Debit / credit" },
+    { k: "bank", label: "Bank", hint: "Transfer" },
+    { k: "easypaisa", label: "Easypaisa", hint: "Mobile wallet" },
+    { k: "jazzcash", label: "JazzCash", hint: "Mobile wallet" },
   ];
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-h-[92dvh] max-w-3xl overflow-y-auto p-0">
+      <DialogContent className="flex max-h-[94dvh] w-[calc(100vw-1.5rem)] max-w-[850px] flex-col overflow-hidden rounded-2xl p-0">
         <DialogHeader>
-          <div className="border-b px-5 py-4 pr-12">
-            <DialogTitle className="text-lg">Payment Checkout</DialogTitle>
-            <p className="mt-1 text-xs text-muted-foreground">Review the bill and choose how the customer pays.</p>
+          <div className="shrink-0 border-b bg-card px-5 py-4 pr-12 sm:px-6">
+            <DialogTitle className="text-lg font-extrabold tracking-tight">Payment Checkout</DialogTitle>
+            <p className="mt-0.5 text-xs text-muted-foreground">Confirm order details, select a payment method, then complete the sale.</p>
           </div>
         </DialogHeader>
-        <div className="grid gap-0 md:grid-cols-[0.95fr_1.05fr]">
-          <section aria-label="Order summary" className="border-b p-5 md:border-b-0 md:border-r">
-            <h3 className="mb-3 text-sm font-extrabold">Order Summary</h3>
-            <div className="mb-4 grid grid-cols-2 gap-2 rounded-lg bg-muted/60 p-3 text-xs">
-              <div><div className="text-muted-foreground">Order type</div><div className="mt-0.5 font-semibold capitalize">{orderType}</div></div>
-              <div><div className="text-muted-foreground">Table / customer</div><div className="mt-0.5 font-semibold">{table || "Walk-in"}</div></div>
+        <div className="grid min-h-0 flex-1 overflow-y-auto bg-[#f7f7f8] md:grid-cols-[0.95fr_1.05fr] md:overflow-hidden dark:bg-background">
+          <section aria-label="Order summary" className="flex min-h-0 flex-col gap-3 border-b p-3.5 md:border-b-0 md:border-r md:p-4">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="flex items-center gap-2 text-[13px] font-extrabold"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-100 text-[11px] text-brand">1</span> Order Summary</h3>
+              <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-semibold">{count} items</span>
             </div>
-            <div className="max-h-64 space-y-3 overflow-y-auto">
-              {cart.map((item) => <div key={item.lineId} className="flex items-start justify-between gap-3 border-b pb-2.5 text-xs">
-                <div><div className="font-semibold">{item.name}</div><div className="mt-1 text-muted-foreground">Qty {item.qty} × {money(item.unitPrice, settings.currency)}</div></div>
-                <span className="shrink-0 font-bold tabular-nums">{money(item.unitPrice * item.qty - item.discount, settings.currency)}</span>
-              </div>)}
+            <div className="shrink-0 rounded-xl border bg-card p-3">
+              <h4 className="mb-2 text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Order information</h4>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div><p className="text-[10px] text-muted-foreground">Order type</p><p className="mt-1 font-bold capitalize">{orderType}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Table / customer</p><p className="mt-1 font-bold">{table || "Walk-in"}</p></div>
+              </div>
             </div>
-            <div className="mt-5 space-y-2 border-t pt-4 text-xs">
-              <Row label="Subtotal" value={money(totals.subtotal, settings.currency)} muted />
-              <Row label="Discounts" value={money(totals.itemDiscount + totals.appliedBillDiscount, settings.currency)} muted />
-              <Row label="Tax" value={money(totals.tax, settings.currency)} muted />
-              {totals.serviceCharge > 0 && <Row label="Service charge" value={money(totals.serviceCharge, settings.currency)} muted />}
-              <div className="flex justify-between border-t pt-3 text-base font-extrabold"><span>Total due</span><span>{money(totals.total, settings.currency)}</span></div>
+            <div className="flex min-h-[120px] flex-col overflow-hidden rounded-xl border bg-card md:min-h-0 md:flex-1">
+              <div className="flex shrink-0 items-center justify-between border-b bg-muted/30 px-3 py-2"><h4 className="text-[11px] font-bold">Items ordered</h4><span className="text-[10px] text-muted-foreground">Quantity · line total</span></div>
+              <div className="max-h-44 min-h-0 flex-1 divide-y overflow-y-auto px-3 md:max-h-none">
+                {cart.map((item) => (
+                  <div key={item.lineId} className="flex items-start justify-between gap-3 py-2.5 text-xs">
+                    <div className="min-w-0"><p className="font-semibold">{item.name}</p><p className="mt-0.5 text-[10px] text-muted-foreground">{item.qty} × {money(item.unitPrice, settings.currency)}{item.discount ? " · discount " + money(item.discount, settings.currency) : ""}</p></div>
+                    <span className="shrink-0 font-bold tabular-nums">{money(item.unitPrice * item.qty - item.discount, settings.currency)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="shrink-0 overflow-hidden rounded-xl border bg-card">
+              <div className="border-b bg-muted/30 px-3 py-2 text-[11px] font-bold">Bill breakdown</div>
+              <div className="space-y-1.5 px-3 py-2.5 text-[11px]">
+                <Row label="Subtotal" value={money(totals.subtotal, settings.currency)} muted />
+                <Row label="Discounts" value={money(totals.itemDiscount + totals.appliedBillDiscount, settings.currency)} muted />
+                <Row label="Tax" value={money(totals.tax, settings.currency)} muted />
+                {totals.serviceCharge > 0 && <Row label="Service charge" value={money(totals.serviceCharge, settings.currency)} muted />}
+              </div>
+              <div className="flex items-center justify-between bg-[#fff0e9] px-3 py-3 text-base font-extrabold text-foreground dark:bg-accent"><span>Total due</span><span className="tabular-nums text-brand">{money(totals.total, settings.currency)}</span></div>
             </div>
           </section>
-          <section aria-label="Payment details" className="space-y-4 bg-orange-50/35 p-5 dark:bg-card">
-            <h3 className="text-sm font-extrabold">Select Payment Method</h3>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-3">
-              {methods.map((m) => <button type="button" key={m.k} onClick={() => setMethod(m.k)} aria-pressed={method === m.k} className={`min-h-14 rounded-xl border bg-card px-2 py-2 text-xs font-semibold transition ${method === m.k ? "border-brand text-brand ring-1 ring-brand" : "hover:border-brand/40"}`}>{m.label}</button>)}
+
+          <section aria-label="Payment details" className="flex min-h-0 flex-col gap-3 p-3.5 md:overflow-y-auto md:p-4">
+            <div className="flex items-center justify-between gap-2"><h3 className="flex items-center gap-2 text-[13px] font-extrabold"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-100 text-[11px] text-brand">2</span> Payment Method</h3><span className="text-[10px] text-muted-foreground">Choose one</span></div>
+            <div className="rounded-xl border bg-card p-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {methods.map((m) => <button type="button" key={m.k} onClick={() => setMethod(m.k)} aria-pressed={method === m.k} className={`min-h-[58px] rounded-lg border px-2 py-2 text-left transition focus-visible:outline-2 focus-visible:outline-brand ${method === m.k ? "border-brand bg-orange-50 ring-1 ring-brand/30 dark:bg-accent" : "bg-card hover:border-brand/40 hover:bg-muted/40"}`}><span className="flex items-center gap-1.5 text-[11px] font-extrabold"><span aria-hidden="true" className={`flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border ${method === m.k ? "border-brand bg-brand text-white" : "border-muted-foreground/40"}`}>{method === m.k ? "✓" : ""}</span>{m.label}</span><span className="mt-1 block pl-5 text-[10px] text-muted-foreground">{m.hint}</span></button>)}
+              </div>
             </div>
-            <label className="block text-xs font-semibold" htmlFor="pos-payment-amount">Amount received</label>
-            <input id="pos-payment-amount" type="number" min={0} step="0.01" value={paid} onChange={(e) => setPaid(+e.target.value)} className="h-14 w-full rounded-xl border bg-card px-4 text-2xl font-extrabold tabular-nums focus:outline-none focus:ring-2 focus:ring-ring/40" />
-            <div className="grid grid-cols-3 gap-2">
-              {quick.map((v) => <button key={v} onClick={() => setPaid(v)} className="rounded-full bg-muted px-2 py-2 text-xs font-semibold hover:bg-accent">{money(v, settings.currency)}</button>)}
-              <button onClick={() => setPaid(Math.ceil(totals.total))} className="rounded-full bg-muted px-2 py-2 text-xs font-semibold hover:bg-accent">Exact</button>
+            <div className="flex items-center justify-between gap-2"><h3 className="flex items-center gap-2 text-[13px] font-extrabold"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-100 text-[11px] text-brand">3</span> Amount Received</h3><span className="text-[10px] text-muted-foreground">Enter or select</span></div>
+            <div className="rounded-xl border bg-card p-3">
+              <label htmlFor="pos-payment-amount" className="mb-1.5 block text-[11px] font-semibold text-muted-foreground">Customer paid ({settings.currency})</label>
+              <input id="pos-payment-amount" type="number" min={0} step="0.01" value={paid} onChange={(e) => setPaid(+e.target.value)} className="h-12 w-full rounded-lg border bg-background px-3 text-xl font-extrabold tabular-nums outline-none focus:ring-2 focus:ring-brand/30" />
+              <p className="mb-2 mt-3 text-[10px] font-semibold text-muted-foreground">Quick amount</p>
+              <div className="grid grid-cols-3 gap-1.5">{quick.map((v) => <button type="button" key={v} onClick={() => setPaid(v)} aria-pressed={paid === v} className={`rounded-lg border px-1 py-2 text-[10px] font-semibold transition ${paid === v ? "border-brand bg-orange-50 text-brand dark:bg-accent" : "bg-muted/50 hover:bg-muted"}`}>{money(v, settings.currency)}</button>)}<button type="button" onClick={() => setPaid(Math.ceil(totals.total))} className="rounded-lg border border-brand/40 bg-orange-50 px-1 py-2 text-[10px] font-bold text-brand dark:bg-accent">Exact amount</button></div>
             </div>
-            <div className="flex items-center justify-between gap-3 rounded-xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"><span>Change due</span><span className="text-lg font-extrabold tabular-nums">{money(change, settings.currency)}</span></div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="h-11 flex-1" onClick={onClose}>Back</Button>
-              <button disabled={!Number.isFinite(paid) || paid < totals.total || paid < 0} onClick={() => { try { const o = checkout(paid, method); toast.success(`Order ${o.invoiceNo} completed`); onDone(o); } catch (err) { toast.error(err instanceof Error ? err.message : "Checkout could not be completed."); } }} className="h-11 flex-[2] rounded-xl bg-brand-gradient px-3 text-sm font-bold text-brand-foreground disabled:cursor-not-allowed disabled:opacity-50">Complete Payment</button>
+            <div className={`flex items-center justify-between gap-3 rounded-xl border px-3.5 py-3 ${remaining > 0 ? "border-amber-200 bg-amber-50 text-amber-900 dark:bg-amber-950/30 dark:text-amber-200" : "border-emerald-200 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200"}`}>
+              <span className="text-[11px] font-bold">{remaining > 0 ? "Amount remaining" : "Change due"}</span><span className="text-base font-extrabold tabular-nums">{money(remaining > 0 ? remaining : change, settings.currency)}</span>
+            </div>
+            <div className="mt-auto flex gap-2 border-t pt-3">
+              <Button variant="outline" className="h-11 flex-1 rounded-lg" onClick={onClose}>Back</Button>
+              <button type="button" disabled={!canComplete} onClick={() => { try { const o = checkout(paid, method); toast.success(`Order ${o.invoiceNo} completed`); onDone(o); } catch (err) { toast.error(err instanceof Error ? err.message : "Checkout could not be completed."); } }} className="h-11 flex-[2] rounded-lg bg-brand-gradient px-3 text-xs font-extrabold text-brand-foreground shadow-sm disabled:cursor-not-allowed disabled:opacity-45">Complete Payment</button>
             </div>
           </section>
         </div>
