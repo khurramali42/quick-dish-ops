@@ -2,12 +2,21 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type {
   CartItem, Category, Customer, Expense, Order, OrderType, PaymentMethod,
-  Product, Purchase, Settings, Supplier, ParkedOrder, ParkedOrderStatus,
+  Product, Purchase, Settings, Supplier, ParkedOrder, ParkedOrderStatus, RestaurantTable, TableReservation, ReservationStatus,
 } from "./types";
 import {
   seedCategories, seedCustomers, seedProducts, seedSettings, seedSuppliers,
 } from "./seed";
 import { shortId, todayISO } from "./format";
+
+const initialTables: RestaurantTable[] = [
+  ...Array.from({ length: 8 }, (_, index) => ({ id: `T${index + 1}`, label: `T${index + 1}`, seats: index < 4 ? 2 : 4, area: "Main Hall" as const, enabled: true })),
+  ...Array.from({ length: 4 }, (_, index) => ({ id: `T${index + 9}`, label: `T${index + 9}`, seats: index < 2 ? 4 : 6, area: "Terrace" as const, enabled: true })),
+];
+
+function bookingOverlap(aStart: number, aMinutes: number, bStart: number, bMinutes: number) {
+  return aStart < bStart + bMinutes * 60_000 && bStart < aStart + aMinutes * 60_000;
+}
 
 interface State {
   // data
@@ -19,6 +28,8 @@ interface State {
   purchases: Purchase[];
   expenses: Expense[];
   settings: Settings;
+  restaurantTables: RestaurantTable[];
+  reservations: TableReservation[];
 
   // POS session
   cart: CartItem[];
@@ -34,6 +45,11 @@ interface State {
   darkMode: boolean;
 
   // actions
+  addReservation: (input: Omit<TableReservation, "id" | "createdAt" | "status">) => TableReservation;
+  updateReservationStatus: (id: string, status: ReservationStatus) => void;
+  addRestaurantTable: (input: Pick<RestaurantTable, "label" | "seats" | "area">) => void;
+  setTableEnabled: (id: string, enabled: boolean) => void;
+
   setSearch: (s: string) => void;
   setCategory: (id: string | "all") => void;
   setOrderType: (t: OrderType) => void;
@@ -101,6 +117,8 @@ export const useStore = create<State>()(
       purchases: [],
       expenses: [],
       settings: seedSettings,
+      restaurantTables: initialTables,
+      reservations: [],
 
       cart: [],
       heldOrders: [],
@@ -114,6 +132,54 @@ export const useStore = create<State>()(
       currentCashier: "Admin",
       darkMode: false,
 
+      addReservation: (input) => {
+        const table = get().restaurantTables.find((t) => t.id === input.tableId && t.enabled);
+        if (!table) throw new Error("Select an active table.");
+        if (!input.guestName.trim()) throw new Error("Enter the guest name.");
+        if (!Number.isInteger(input.guests) || input.guests < 1 || input.guests > table.seats) throw new Error(`This table seats up to ${table.seats} guests.`);
+        const starts = Date.parse(input.startAt);
+        if (!Number.isFinite(starts) || starts < Date.now() - 60_000) throw new Error("Select a valid future date and time.");
+        if (!Number.isInteger(input.durationMinutes) || input.durationMinutes < 30 || input.durationMinutes > 240) throw new Error("Invalid reservation duration.");
+        if (get().reservations.some((r) => r.tableId === table.id && (r.status === "seated" || (r.status === "booked" && bookingOverlap(starts, input.durationMinutes, Date.parse(r.startAt), r.durationMinutes))))) {
+          throw new Error("This table is already booked for the chosen time.");
+        }
+        if (get().heldOrders.some((o) => o.orderType === "dine-in" && o.table === table.label) || (get().cart.length > 0 && get().orderType === "dine-in" && get().table === table.label)) {
+          if (starts < Date.now() + 90 * 60_000) throw new Error("Table currently has an open order. Choose a later time.");
+        }
+        const reservation: TableReservation = { ...input, guestName: input.guestName.trim(), phone: input.phone.trim(), note: input.note?.trim(), id: shortId("R"), createdAt: new Date().toISOString(), status: "booked" };
+        set({ reservations: [reservation, ...get().reservations] });
+        return reservation;
+      },
+      updateReservationStatus: (id, status) => {
+        const target = get().reservations.find((r) => r.id === id);
+        if (!target) throw new Error("Reservation not found.");
+        if (target.status === "cancelled" || target.status === "completed") throw new Error("Closed reservations cannot be changed.");
+        if (status === "booked" && target.status !== "booked") throw new Error("Cannot reset an already seated reservation.");
+        if (status === "seated" && target.status !== "booked") throw new Error("Only booked reservations can be seated.");
+        if (status === "completed" && target.status !== "seated") throw new Error("Only seated reservations can be completed.");
+        if (status === "seated") {
+          const table = get().restaurantTables.find((t) => t.id === target.tableId);
+          if (!table?.enabled) throw new Error("Table is unavailable.");
+          if (get().reservations.some((r) => r.id !== id && r.tableId === target.tableId && r.status === "seated")) throw new Error("Another party is seated at this table.");
+          if (get().heldOrders.some((o) => o.orderType === "dine-in" && o.table === table.label)) throw new Error("This table already has an open saved order.");
+        }
+        set({ reservations: get().reservations.map((r) => r.id === id ? { ...r, status } : r) });
+      },
+      addRestaurantTable: (input) => {
+        const label = input.label.trim().toUpperCase();
+        if (!/^[A-Z0-9-]{1,12}$/.test(label)) throw new Error("Use 1–12 letters, numbers or hyphens for the table name.");
+        if (!Number.isInteger(input.seats) || input.seats < 1 || input.seats > 20) throw new Error("Enter 1–20 seats.");
+        if (get().restaurantTables.some((t) => t.label.toUpperCase() === label)) throw new Error("Table name already exists.");
+        set({ restaurantTables: [...get().restaurantTables, { id: shortId("T"), label, seats: input.seats, area: input.area, enabled: true }] });
+      },
+      setTableEnabled: (id, enabled) => {
+        const table = get().restaurantTables.find((t) => t.id === id);
+        if (!table) throw new Error("Table not found.");
+        if (!enabled && (get().reservations.some((r) => r.tableId === id && ["booked", "seated"].includes(r.status) && Date.parse(r.startAt) + r.durationMinutes * 60_000 > Date.now()) || get().heldOrders.some((o) => o.table === table.label) || (get().cart.length > 0 && get().orderType === "dine-in" && get().table === table.label))) {
+          throw new Error("Complete or cancel active reservations and orders before disabling this table.");
+        }
+        set({ restaurantTables: get().restaurantTables.map((t) => t.id === id ? { ...t, enabled } : t) });
+      },
       setSearch: (s) => set({ search: s }),
       setCategory: (id) => set({ activeCategory: id }),
       setOrderType: (t) => set({ orderType: t }),

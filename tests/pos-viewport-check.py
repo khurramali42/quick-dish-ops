@@ -73,4 +73,24 @@ with sync_playwright() as p:
             assert page.locator(".table-scroll").count() == 1
         page.close()
         print("PASS route", path)
+    # Table booking route: floor map, reservation dialog and responsive layout.
+    for width, height in [(1440, 900), (390, 844)]:
+        page = browser.new_page(viewport={"width": width, "height": height})
+        browser_errors = []
+        page.on("pageerror", lambda error: browser_errors.append(str(error)))
+        response = page.goto(BASE + "/tables", wait_until="networkidle", timeout=30000)
+        assert response and response.status == 200, f"/tables HTTP failure at {width}"
+        assert page.get_by_role("heading", name="Tables & Reservations").is_visible()
+        assert page.get_by_role("heading", name="Restaurant Floor").is_visible()
+        assert page.get_by_text("T1", exact=True).first.is_visible()
+        assert page.locator("body").evaluate("el => el.scrollWidth <= window.innerWidth + 2"), f"Table map overflow at {width}px"
+        page.get_by_text("T1", exact=True).first.click()
+        page.get_by_role("button", name="Reserve", exact=True).click()
+        page.get_by_placeholder("Guest full name").fill("Viewport Test Guest")
+        page.get_by_role("button", name="Confirm Booking").click()
+        assert page.get_by_text("Viewport Test Guest").first.is_visible(), "Reservation was not saved"
+        assert not browser_errors, f"Table booking browser errors at {width}: {browser_errors}"
+        page.screenshot(path=str(OUT / f"tables-{width}x{height}.png"), full_page=False)
+        page.close()
+        print("PASS tables", width, height)
     browser.close()

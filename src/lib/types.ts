@@ -2,6 +2,28 @@ export type OrderType = "dine-in" | "takeaway" | "delivery" | "pickup";
 export type OrderStatus = "pending" | "in-kitchen" | "ready" | "completed" | "cancelled" | "refunded";
 export type PaymentMethod = "cash" | "card" | "bank" | "easypaisa" | "jazzcash";
 
+export interface RestaurantTable {
+  id: string;
+  label: string;
+  seats: number;
+  area: "Main Hall" | "Terrace" | "Private";
+  enabled: boolean;
+}
+
+export type ReservationStatus = "booked" | "seated" | "completed" | "cancelled";
+export interface TableReservation {
+  id: string;
+  tableId: string;
+  guestName: string;
+  phone: string;
+  guests: number;
+  startAt: string;
+  durationMinutes: number;
+  note?: string;
+  status: ReservationStatus;
+  createdAt: string;
+}
+
 export interface Category {
   id: string;
   name: string;

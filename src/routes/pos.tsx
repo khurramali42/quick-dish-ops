@@ -36,7 +36,7 @@ function POSScreen() {
     cart, addToCart, updateQty, removeLine, clearCart, updateItemDiscount, updateNote,
     orderType, setOrderType, table, setTable, customerId, setCustomer, customers,
     billDiscount, setBillDiscount, heldOrders, holdOrder, recallOrder,
-    settings, checkout, currentCashier, orders,
+    settings, checkout, currentCashier, orders, restaurantTables, reservations,
   } = useStore();
   const totals = useCartTotals();
   const [payOpen, setPayOpen] = useState(false);
@@ -116,7 +116,7 @@ function POSScreen() {
                 return <button key={t.key} onClick={() => setOrderType(t.key)} aria-pressed={active} className={`flex shrink-0 items-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${active ? "bg-card text-brand shadow-sm ring-1 ring-border" : "text-muted-foreground hover:bg-card/80"}`}><Icon className="h-3.5 w-3.5" /> {t.label}</button>;
               })}
             </div>
-            {orderType === "dine-in" && <select aria-label="Choose table" value={table ?? ""} onChange={(e) => setTable(e.target.value || undefined)} className="h-9 min-w-[110px] rounded-lg border bg-background px-2 text-xs"><option value="">Select Table</option>{Array.from({ length: 12 }, (_, i) => `T${i + 1}`).map((t) => <option key={t} value={t}>{t}</option>)}</select>}
+            {orderType === "dine-in" && <select aria-label="Choose table" value={table ?? ""} onChange={(e) => setTable(e.target.value || undefined)} className="h-9 min-w-[110px] rounded-lg border bg-background px-2 text-xs"><option value="">Select Table</option>{restaurantTables.filter((t) => t.enabled).map((t) => <option key={t.id} value={t.label}>{t.label} · {t.seats} seats</option>)}</select>}
             <select aria-label="Choose customer" value={customerId ?? ""} onChange={(e) => setCustomer(e.target.value || undefined)} className="h-9 min-w-[130px] max-w-[180px] rounded-lg border bg-background px-2 text-xs"><option value="">Walk-in customer</option>{customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
             <div className="relative min-w-[180px] flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
