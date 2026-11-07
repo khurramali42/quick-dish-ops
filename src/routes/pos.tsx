@@ -368,7 +368,7 @@ function IconBtn({ children, onClick, title }: any) {
 
 function PaymentDialog({ open, onClose, onDone }: { open: boolean; onClose: () => void; onDone: (o: Order) => void }) {
   const totals = useCartTotals();
-  const { settings, checkout } = useStore();
+  const { settings, checkout, cart, orderType, table } = useStore();
   const [method, setMethod] = useState<PaymentMethod>("cash");
   const [paid, setPaid] = useState(0);
   useEffect(() => { if (open) setPaid(Math.ceil(totals.total)); }, [open, totals.total]);
@@ -393,11 +393,11 @@ function PaymentDialog({ open, onClose, onDone }: { open: boolean; onClose: () =
           <section aria-label="Order summary" className="border-b p-5 md:border-b-0 md:border-r">
             <h3 className="mb-3 text-sm font-extrabold">Order Summary</h3>
             <div className="mb-4 grid grid-cols-2 gap-2 rounded-lg bg-muted/60 p-3 text-xs">
-              <div><div className="text-muted-foreground">Order type</div><div className="mt-0.5 font-semibold capitalize">{useStore.getState().orderType}</div></div>
-              <div><div className="text-muted-foreground">Table / customer</div><div className="mt-0.5 font-semibold">{useStore.getState().table || "Walk-in"}</div></div>
+              <div><div className="text-muted-foreground">Order type</div><div className="mt-0.5 font-semibold capitalize">{orderType}</div></div>
+              <div><div className="text-muted-foreground">Table / customer</div><div className="mt-0.5 font-semibold">{table || "Walk-in"}</div></div>
             </div>
             <div className="max-h-64 space-y-3 overflow-y-auto">
-              {useStore.getState().cart.map((item) => <div key={item.lineId} className="flex items-start justify-between gap-3 border-b pb-2.5 text-xs">
+              {cart.map((item) => <div key={item.lineId} className="flex items-start justify-between gap-3 border-b pb-2.5 text-xs">
                 <div><div className="font-semibold">{item.name}</div><div className="mt-1 text-muted-foreground">Qty {item.qty} × {money(item.unitPrice, settings.currency)}</div></div>
                 <span className="shrink-0 font-bold tabular-nums">{money(item.unitPrice * item.qty - item.discount, settings.currency)}</span>
               </div>)}
