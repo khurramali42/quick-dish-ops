@@ -211,14 +211,19 @@ function POSScreen() {
                 </div>
               ) : cart.map((item) => (
                 <div key={item.lineId} className="bg-card px-2 py-3">
-                  <div className="flex justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="text-sm font-bold leading-snug break-words">{item.name}</div>
-                      <div className="mt-1 text-xs text-muted-foreground">{money(item.unitPrice, settings.currency)} · Tax {item.taxRate}%</div>
+                  <div className="flex items-start gap-2.5">
+                    <div className="h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-muted">
+                      {(() => { const product = products.find((p) => p.id === item.productId); return <ProductThumb src={product?.thumbnailUrl ?? product?.imageUrl} emoji={product?.emoji ?? "🍽️"} />; })()}
                     </div>
-                    <button onClick={() => removeLine(item.lineId)} className="text-muted-foreground hover:text-destructive">
-                      <X className="h-4 w-4" />
-                    </button>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[12px] font-bold leading-snug break-words">{item.name}</div>
+                      <div className="mt-0.5 text-[11px] text-muted-foreground">{money(item.unitPrice, settings.currency)} · Tax {item.taxRate}%</div>
+                      {item.note && <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">{item.note}</p>}
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <button onClick={() => setReviewOpen(true)} className="text-[10px] font-semibold text-brand hover:underline">Edit</button>
+                      <button onClick={() => removeLine(item.lineId)} aria-label={`Remove ${item.name}`} className="text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button>
+                    </div>
                   </div>
                   <div className="mt-2 flex items-center justify-between">
                     <div className="flex items-center border rounded-md">
@@ -338,6 +343,7 @@ function ProductCard({ product, onSelect }: { product: Product; onSelect: () => 
       </div>
       <div className="p-2.5">
         <div className="line-clamp-2 min-h-[2.4rem] text-[13px] font-extrabold leading-tight">{product.name}</div>
+        {product.description && <div className="mt-1 line-clamp-2 min-h-[1.9rem] text-[10px] leading-snug text-muted-foreground">{product.description}</div>}
         <div className="mt-1.5 flex items-center justify-between gap-2">
           <span className="font-extrabold text-sm">{money(product.price, settings.currency)}</span>
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-gradient text-brand-foreground shadow-sm transition group-hover:brightness-110"><Plus className="h-3.5 w-3.5" /></span>
