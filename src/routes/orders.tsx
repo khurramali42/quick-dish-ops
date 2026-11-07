@@ -59,7 +59,7 @@ function OrdersPage() {
                 <td className="px-4 py-2.5 text-right">
                   <button onClick={() => setReceipt(o)} className="p-1.5 rounded hover:bg-accent" title="Print"><Printer className="h-3.5 w-3.5" /></button>
                   {o.status !== "refunded" && (
-                    <button onClick={() => { if (confirm("Refund this order?")) { refundOrder(o.id); toast.success("Refunded"); } }} className="p-1.5 rounded hover:bg-accent text-destructive" title="Refund"><Undo2 className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => { if (confirm("Refund this sale? It reverses customer totals but does not automatically restock prepared food. Adjust physical inventory manually if goods were actually returned.")) { refundOrder(o.id); toast.success("Refunded"); } }} className="p-1.5 rounded hover:bg-accent text-destructive" title="Refund"><Undo2 className="h-3.5 w-3.5" /></button>
                   )}
                 </td>
               </tr>
