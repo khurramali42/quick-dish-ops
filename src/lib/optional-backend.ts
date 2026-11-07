@@ -100,8 +100,8 @@ export async function signOut(session: AuthSession) {
 }
 
 /** All business data, but never action functions, browser credentials or tokens. */
-export function snapshot(): Snapshot {
-  const state = useStore.getState() as unknown as Record<string, unknown>;
+export function snapshot(source: unknown = useStore.getState()): Snapshot {
+  const state = source as Record<string, unknown>;
   return Object.fromEntries(stateFields.map((field) => [field, state[field] ?? null]));
 }
 export function validateSnapshot(data: unknown): asserts data is Snapshot {
@@ -132,7 +132,7 @@ export async function loadWorkspace(session: AuthSession): Promise<{ session: Au
     return { session: current, workspace: result[0] };
   }
   // First login only: the new account receives an isolated demo workspace.
-  const initial = snapshot();
+  const initial = snapshot(useStore.getInitialState());
   const created = await api("/rest/v1/pos_workspaces", {
     method: "POST",
     headers: { Prefer: "return=representation" },
