@@ -382,52 +382,51 @@ function PaymentDialog({ open, onClose, onDone }: { open: boolean; onClose: () =
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>Complete Payment</DialogTitle></DialogHeader>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="rounded-lg bg-accent/60 p-4">
-            <div className="text-xs uppercase text-muted-foreground">Total Due</div>
-            <div className="text-3xl font-bold mt-1">{money(totals.total, settings.currency)}</div>
-            <div className="mt-3 text-xs text-muted-foreground">Tax {money(totals.tax, settings.currency)} · Subtotal {money(totals.subtotal, settings.currency)}</div>
+      <DialogContent className="max-h-[92dvh] max-w-3xl overflow-y-auto p-0">
+        <DialogHeader>
+          <div className="border-b px-5 py-4 pr-12">
+            <DialogTitle className="text-lg">Payment Checkout</DialogTitle>
+            <p className="mt-1 text-xs text-muted-foreground">Review the bill and choose how the customer pays.</p>
           </div>
-          <div>
-            <label className="text-xs text-muted-foreground">Payment method</label>
-            <div className="mt-1 grid grid-cols-3 gap-1">
-              {methods.map((m) => (
-                <button key={m.k} onClick={() => setMethod(m.k)} className={`px-2 py-2 rounded-md text-xs border ${method === m.k ? "bg-brand-gradient text-brand-foreground border-transparent" : "hover:bg-accent"}`}>{m.label}</button>
-              ))}
+        </DialogHeader>
+        <div className="grid gap-0 md:grid-cols-[0.95fr_1.05fr]">
+          <section aria-label="Order summary" className="border-b p-5 md:border-b-0 md:border-r">
+            <h3 className="mb-3 text-sm font-extrabold">Order Summary</h3>
+            <div className="mb-4 grid grid-cols-2 gap-2 rounded-lg bg-muted/60 p-3 text-xs">
+              <div><div className="text-muted-foreground">Order type</div><div className="mt-0.5 font-semibold capitalize">{useStore.getState().orderType}</div></div>
+              <div><div className="text-muted-foreground">Table / customer</div><div className="mt-0.5 font-semibold">{useStore.getState().table || "Walk-in"}</div></div>
             </div>
-            <label className="text-xs text-muted-foreground mt-3 block">Amount received</label>
-            <input type="number" min={0} step="0.01" value={paid} onChange={(e) => setPaid(+e.target.value)} className="mt-1 h-12 w-full min-w-0 rounded-lg border bg-background px-4 text-lg font-semibold tabular-nums" />
-            <div className="flex gap-1 mt-2 flex-wrap">
-              {quick.map((v) => (
-                <button key={v} onClick={() => setPaid((p) => p + v)} className="text-xs px-2 py-1 rounded-md border hover:bg-accent">+{v}</button>
-              ))}
-              <button onClick={() => setPaid(Math.ceil(totals.total))} className="text-xs px-2 py-1 rounded-md border hover:bg-accent">Exact</button>
+            <div className="max-h-64 space-y-3 overflow-y-auto">
+              {useStore.getState().cart.map((item) => <div key={item.lineId} className="flex items-start justify-between gap-3 border-b pb-2.5 text-xs">
+                <div><div className="font-semibold">{item.name}</div><div className="mt-1 text-muted-foreground">Qty {item.qty} × {money(item.unitPrice, settings.currency)}</div></div>
+                <span className="shrink-0 font-bold tabular-nums">{money(item.unitPrice * item.qty - item.discount, settings.currency)}</span>
+              </div>)}
             </div>
-          </div>
-        </div>
-        <div className="flex justify-between items-center rounded-lg border bg-background p-4">
-          <span className="text-sm text-muted-foreground">Change to return</span>
-          <span className="text-2xl font-bold text-emerald-600">{money(change, settings.currency)}</span>
-        </div>
-        <div className="flex gap-2 justify-end">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <button
-            disabled={!Number.isFinite(paid) || paid < totals.total || paid < 0}
-            onClick={() => {
-              try {
-                const o = checkout(paid, method);
-                toast.success(`Order ${o.invoiceNo} completed`);
-                onDone(o);
-              } catch (err) {
-                toast.error(err instanceof Error ? err.message : "Checkout could not be completed.");
-              }
-            }}
-            className="px-5 h-10 rounded-lg bg-brand-gradient text-brand-foreground font-medium disabled:opacity-50"
-          >
-            Complete sale
-          </button>
+            <div className="mt-5 space-y-2 border-t pt-4 text-xs">
+              <Row label="Subtotal" value={money(totals.subtotal, settings.currency)} muted />
+              <Row label="Discounts" value={money(totals.itemDiscount + totals.appliedBillDiscount, settings.currency)} muted />
+              <Row label="Tax" value={money(totals.tax, settings.currency)} muted />
+              {totals.serviceCharge > 0 && <Row label="Service charge" value={money(totals.serviceCharge, settings.currency)} muted />}
+              <div className="flex justify-between border-t pt-3 text-base font-extrabold"><span>Total due</span><span>{money(totals.total, settings.currency)}</span></div>
+            </div>
+          </section>
+          <section aria-label="Payment details" className="space-y-4 bg-orange-50/35 p-5 dark:bg-card">
+            <h3 className="text-sm font-extrabold">Select Payment Method</h3>
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 md:grid-cols-3">
+              {methods.map((m) => <button type="button" key={m.k} onClick={() => setMethod(m.k)} aria-pressed={method === m.k} className={`min-h-14 rounded-xl border bg-card px-2 py-2 text-xs font-semibold transition ${method === m.k ? "border-brand text-brand ring-1 ring-brand" : "hover:border-brand/40"}`}>{m.label}</button>)}
+            </div>
+            <label className="block text-xs font-semibold" htmlFor="pos-payment-amount">Amount received</label>
+            <input id="pos-payment-amount" type="number" min={0} step="0.01" value={paid} onChange={(e) => setPaid(+e.target.value)} className="h-14 w-full rounded-xl border bg-card px-4 text-2xl font-extrabold tabular-nums focus:outline-none focus:ring-2 focus:ring-ring/40" />
+            <div className="grid grid-cols-3 gap-2">
+              {quick.map((v) => <button key={v} onClick={() => setPaid(v)} className="rounded-full bg-muted px-2 py-2 text-xs font-semibold hover:bg-accent">{money(v, settings.currency)}</button>)}
+              <button onClick={() => setPaid(Math.ceil(totals.total))} className="rounded-full bg-muted px-2 py-2 text-xs font-semibold hover:bg-accent">Exact</button>
+            </div>
+            <div className="flex items-center justify-between gap-3 rounded-xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"><span>Change due</span><span className="text-lg font-extrabold tabular-nums">{money(change, settings.currency)}</span></div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="h-11 flex-1" onClick={onClose}>Back</Button>
+              <button disabled={!Number.isFinite(paid) || paid < totals.total || paid < 0} onClick={() => { try { const o = checkout(paid, method); toast.success(`Order ${o.invoiceNo} completed`); onDone(o); } catch (err) { toast.error(err instanceof Error ? err.message : "Checkout could not be completed."); } }} className="h-11 flex-[2] rounded-xl bg-brand-gradient px-3 text-sm font-bold text-brand-foreground disabled:cursor-not-allowed disabled:opacity-50">Complete Payment</button>
+            </div>
+          </section>
         </div>
       </DialogContent>
     </Dialog>
