@@ -36,6 +36,7 @@ interface State {
   cart: CartItem[];
   heldOrders: ParkedOrder[];
   parkedHistory: ParkedOrder[];
+  activeKitchenTicket?: Pick<ParkedOrder, "id" | "kitchenStatus" | "kitchenDoneLineIds" | "kitchenChef" | "kitchenDispatchedAt">;
   activeCategory: string | "all";
   search: string;
   orderType: OrderType;
@@ -70,6 +71,7 @@ interface State {
   replaceCart: (items: CartItem[]) => void;
 
   holdOrder: (status?: "held" | "pending-payment") => void;
+  dispatchCartToKitchen: () => void;
   recallOrder: (id: string) => void;
   setParkedStatus: (id: string, status: ParkedOrderStatus, reason?: string) => void;
   removeParkedHistory: (id: string) => void;
@@ -132,6 +134,7 @@ export const useStore = create<State>()(
       cart: [],
       heldOrders: [],
       parkedHistory: [],
+      activeKitchenTicket: undefined,
       activeCategory: "all",
       search: "",
       orderType: "dine-in",
@@ -257,7 +260,7 @@ export const useStore = create<State>()(
         cart: get().cart.map((c) => c.lineId === lineId ? { ...c, note } : c),
       }),
       removeLine: (lineId) => set({ cart: get().cart.filter((c) => c.lineId !== lineId) }),
-      clearCart: () => set({ cart: [], billDiscount: 0, table: undefined }),
+      clearCart: () => set({ cart: [], billDiscount: 0, table: undefined, activeKitchenTicket: undefined }),
       replaceCart: (items) => {
         const products = get().products;
         for (const item of items) {
@@ -274,17 +277,29 @@ export const useStore = create<State>()(
       },
 
       holdOrder: (status = "held") => {
-        const { cart, orderType, table, customerId, billDiscount, currentCashier, heldOrders } = get();
+        const { cart, orderType, table, customerId, billDiscount, currentCashier, heldOrders, activeKitchenTicket } = get();
         if (!cart.length) throw new Error("Add products before parking an order.");
         if (status !== "held" && status !== "pending-payment") throw new Error("Invalid parked order status.");
         const snapshot: ParkedOrder = {
           id: shortId("H"), at: todayISO(), updatedAt: todayISO(),
           cart: cart.map((item) => ({ ...item, modifiers: item.modifiers.map((mod) => ({ ...mod })) })),
           orderType, table, customerId, billDiscount, cashier: currentCashier, status,
+          ...(activeKitchenTicket ? { ...activeKitchenTicket, id: shortId("H") } : {}),
         };
         set({
           heldOrders: [...heldOrders, snapshot],
-          cart: [], billDiscount: 0, table: undefined,
+          cart: [], billDiscount: 0, table: undefined, activeKitchenTicket: undefined,
+        });
+      },
+      dispatchCartToKitchen: () => {
+        if (!get().cart.length) throw new Error("Add products before dispatching to kitchen.");
+        if (get().activeKitchenTicket) throw new Error("This ticket is already in kitchen preparation.");
+        get().holdOrder("pending-payment");
+        const held = get().heldOrders.at(-1)!;
+        const now = todayISO();
+        set({
+          heldOrders: get().heldOrders.map((order) => order.id === held.id ? { ...order, kitchenStatus: "new", kitchenDoneLineIds: [], kitchenDispatchedAt: now } : order),
+          activityLog: [{ id: shortId("A"), createdAt: now, operator: get().currentCashier, action: "kitchen.dispatched_unpaid", subjectId: held.id, details: `Prepayment kitchen ticket ${held.id}` }, ...get().activityLog],
         });
       },
       recallOrder: (id) => {
@@ -307,6 +322,7 @@ export const useStore = create<State>()(
           orderType: held.orderType, table: held.table, customerId: held.customerId,
           billDiscount: held.billDiscount ?? 0,
           heldOrders: heldOrders.filter((h) => h.id !== id),
+          activeKitchenTicket: held.kitchenStatus ? { id: held.id, kitchenStatus: held.kitchenStatus, kitchenDoneLineIds: held.kitchenDoneLineIds, kitchenChef: held.kitchenChef, kitchenDispatchedAt: held.kitchenDispatchedAt } : undefined,
         });
       },
       setParkedStatus: (id, status, reason) => {
@@ -380,7 +396,9 @@ export const useStore = create<State>()(
           change: Math.max(0, paid - t.total),
           paymentMethod: method,
           status: "completed",
-          kitchenStatus: "new",
+          kitchenStatus: get().activeKitchenTicket?.kitchenStatus ?? "new",
+          kitchenDoneLineIds: get().activeKitchenTicket?.kitchenDoneLineIds,
+          kitchenChef: get().activeKitchenTicket?.kitchenChef,
         };
         // deduct stock
         const nextProducts = products.map((p) => {
@@ -395,7 +413,7 @@ export const useStore = create<State>()(
           orders: [order, ...get().orders],
           products: nextProducts,
           customers: nextCustomers,
-          cart: [], billDiscount: 0, table: undefined,
+          cart: [], billDiscount: 0, table: undefined, activeKitchenTicket: undefined,
           activityLog: [{ id: shortId("A"), createdAt: todayISO(), operator: currentCashier, action: "sale.completed", subjectId: order.id, details: order.invoiceNo }, ...get().activityLog],
         });
         return order;
@@ -504,6 +522,18 @@ export const useStore = create<State>()(
       addExpense: (e) => set({ expenses: [{ ...e, id: shortId("E") }, ...get().expenses] }),
       updateSettings: (s) => set({ settings: { ...get().settings, ...s } }),
       setKitchenStatus: (id, status) => set({
+        heldOrders: get().heldOrders.map((held) => {
+          if (held.id !== id || !held.kitchenStatus) return held;
+          const steps: Record<string, string> = { new: "preparing", preparing: "ready", ready: "served" };
+          if (steps[held.kitchenStatus] !== status) return held;
+          if (status === "ready" && held.cart.some((item) => !(held.kitchenDoneLineIds ?? []).includes(item.lineId))) return held;
+          return { ...held, kitchenStatus: status };
+        }),
+        activeKitchenTicket: get().activeKitchenTicket?.id === id
+          ? (() => { const ticket = get().activeKitchenTicket!; const steps: Record<string, string> = { new: "preparing", preparing: "ready", ready: "served" };
+            if (steps[ticket.kitchenStatus ?? "new"] !== status || status === "ready" && get().cart.some((item) => !(ticket.kitchenDoneLineIds ?? []).includes(item.lineId))) return ticket;
+            return { ...ticket, kitchenStatus: status }; })()
+          : get().activeKitchenTicket,
         orders: get().orders.map((order) => {
           if (order.id !== id || order.status !== "completed") return order;
           const current = order.kitchenStatus ?? "new";
@@ -514,6 +544,14 @@ export const useStore = create<State>()(
         }),
       }),
       toggleKitchenItem: (orderId, lineId) => set({
+        heldOrders: get().heldOrders.map((ticket) => {
+          if (ticket.id !== orderId || ticket.kitchenStatus !== "preparing" || !ticket.cart.some((item) => item.lineId === lineId)) return ticket;
+          const completed = ticket.kitchenDoneLineIds ?? [];
+          return { ...ticket, kitchenDoneLineIds: completed.includes(lineId) ? completed.filter((id) => id !== lineId) : [...completed, lineId] };
+        }),
+        activeKitchenTicket: get().activeKitchenTicket?.id === orderId && get().activeKitchenTicket?.kitchenStatus === "preparing" && get().cart.some((item) => item.lineId === lineId)
+          ? (() => { const ticket = get().activeKitchenTicket!; const ids = ticket.kitchenDoneLineIds ?? []; return { ...ticket, kitchenDoneLineIds: ids.includes(lineId) ? ids.filter((id) => id !== lineId) : [...ids, lineId] }; })()
+          : get().activeKitchenTicket,
         orders: get().orders.map((order) => {
           if (order.id !== orderId || order.status !== "completed" || order.kitchenStatus !== "preparing" || !order.items.some((item) => item.lineId === lineId)) return order;
           const done = order.kitchenDoneLineIds ?? [];
@@ -521,6 +559,8 @@ export const useStore = create<State>()(
         }),
       }),
       assignKitchenChef: (orderId, chef) => set({
+        heldOrders: get().heldOrders.map((ticket) => ticket.id === orderId && (ticket.kitchenStatus === "new" || ticket.kitchenStatus === "preparing") ? { ...ticket, kitchenChef: chef.slice(0, 50) } : ticket),
+        activeKitchenTicket: get().activeKitchenTicket?.id === orderId && ["new", "preparing"].includes(get().activeKitchenTicket?.kitchenStatus ?? "") ? { ...get().activeKitchenTicket, kitchenChef: chef.slice(0,50) } : get().activeKitchenTicket,
         orders: get().orders.map((order) =>
           order.id === orderId && order.status === "completed" && (order.kitchenStatus === "new" || order.kitchenStatus === "preparing") ?
           { ...order, kitchenChef: chef.slice(0, 50) } : order,
