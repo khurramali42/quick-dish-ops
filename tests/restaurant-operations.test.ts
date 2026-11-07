@@ -14,7 +14,7 @@ beforeEach(() => {
     suppliers: structuredClone(seedSuppliers),
     customers: structuredClone(seedCustomers),
     settings: { ...seedSettings, serviceChargePct: 0 },
-    orders: [], purchases: [], activityLog: [], cart: [item], billDiscount: 0, customerId: "cu1",
+    orders: [], purchases: [], heldOrders: [], activeKitchenTicket: undefined, activityLog: [], cart: [item], billDiscount: 0, customerId: "cu1",
   });
 });
 
@@ -86,6 +86,26 @@ describe("public demo operational extensions", () => {
     expect(() => useStore.getState().checkout(2000, "cash")).toThrow(/Insufficient stock/);
     expect(useStore.getState().orders).toHaveLength(0);
     expect(useStore.getState().products.find((p) => p.id === ingredient.id)?.stock).toBe(30);
+  });
+
+  test("unpaid kitchen order retains preparation state when cashier collects payment", () => {
+    useStore.getState().dispatchCartToKitchen();
+    expect(useStore.getState().cart).toHaveLength(0);
+    const held = useStore.getState().heldOrders[0];
+    expect(held.status).toBe("pending-payment");
+    expect(held.kitchenStatus).toBe("new");
+    expect(useStore.getState().orders).toHaveLength(0);
+    useStore.getState().setKitchenStatus(held.id, "preparing");
+    useStore.getState().toggleKitchenItem(held.id, item.lineId);
+    useStore.getState().setKitchenStatus(held.id, "ready");
+    expect(useStore.getState().heldOrders[0].kitchenStatus).toBe("ready");
+    useStore.getState().recallOrder(held.id);
+    expect(useStore.getState().activeKitchenTicket?.kitchenStatus).toBe("ready");
+    const completed = useStore.getState().checkout(700, "cash");
+    expect(completed.kitchenStatus).toBe("ready");
+    expect(completed.kitchenDoneLineIds).toEqual([item.lineId]);
+    expect(useStore.getState().activeKitchenTicket).toBeUndefined();
+    expect(useStore.getState().heldOrders).toHaveLength(0);
   });
 
   test("waste movement requires a reason and cannot exceed actual stock", () => {
