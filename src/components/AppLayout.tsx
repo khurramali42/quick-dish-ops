@@ -26,7 +26,7 @@ export function AppLayout({ children, fullBleed = false }: { children: ReactNode
       <AppSidebar collapsed={collapsed} />
       <main className={fullBleed ? "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden" : "flex min-w-0 flex-1 flex-col"}>
         <MobileNavigation fullscreen={fullscreen} onToggleFullscreen={toggleFullscreen} />
-        <header className="hidden h-[68px] shrink-0 items-center justify-between gap-5 border-b bg-card px-5 shadow-[0_2px_12px_rgba(52,26,12,0.03)] lg:flex xl:px-8">
+        <header className={fullBleed ? "hidden" : "hidden h-[68px] shrink-0 items-center justify-between gap-5 border-b bg-card px-5 shadow-[0_2px_12px_rgba(52,26,12,0.03)] lg:flex xl:px-8"}>
           <div className="flex min-w-0 items-center gap-3">
             <button type="button" title={collapsed ? "Expand navigation" : "Collapse navigation"} aria-label={collapsed ? "Expand navigation" : "Collapse navigation"} aria-expanded={!collapsed} onClick={() => setCollapsed((v) => !v)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border hover:bg-accent">
               {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
