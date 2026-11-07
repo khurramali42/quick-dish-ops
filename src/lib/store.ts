@@ -284,7 +284,7 @@ export const useStore = create<State>()(
           id: shortId("H"), at: todayISO(), updatedAt: todayISO(),
           cart: cart.map((item) => ({ ...item, modifiers: item.modifiers.map((mod) => ({ ...mod })) })),
           orderType, table, customerId, billDiscount, cashier: currentCashier, status,
-          ...(activeKitchenTicket ? { ...activeKitchenTicket, id: shortId("H") } : {}),
+          ...(activeKitchenTicket ? { ...activeKitchenTicket, id: activeKitchenTicket.id } : {}),
         };
         set({
           heldOrders: [...heldOrders, snapshot],
@@ -384,6 +384,7 @@ export const useStore = create<State>()(
           customerName: customer?.name,
           table,
           orderType,
+          kitchenTicketId: get().activeKitchenTicket?.id,
           reservationId: orderType === "dine-in" ? get().reservations.find((reservation) =>
             reservation.status === "seated" && get().restaurantTables.some((tableDef) => tableDef.id === reservation.tableId && tableDef.label === table))?.id : undefined,
           items: cart.map((item) => ({ ...item, modifiers: item.modifiers.map((m) => ({ ...m })), unitCostSnapshot: (() => {
@@ -434,7 +435,7 @@ export const useStore = create<State>()(
       deleteProduct: (id) => {
         const state = get();
         if (state.cart.some((line) => line.productId === id) || state.heldOrders.some((order) => order.cart.some((line) => line.productId === id)) ||
-          state.orders.some((order) => order.items.some((line) => line.productId === id)) || state.purchases.some((purchase) => purchase.items.some((line) => line.productId === id))) {
+          state.orders.some((order) => order.items.some((line) => line.productId === id)) || state.purchases.some((purchase) => purchase.items.some((line) => line.productId === id)) || state.products.some((product) => product.recipe?.some((line) => line.ingredientProductId === id))) {
           throw new Error("This product is referenced by orders, stock purchases or an active cart. Mark it unavailable instead.");
         }
         set({ products: state.products.filter((p) => p.id !== id) });
