@@ -33,9 +33,9 @@ export function AppSidebar({ collapsed = false }: { collapsed?: boolean }) {
   const [hoveredTab, setHoveredTab] = useState<{ label: string; top: number } | null>(null);
 
   return (
-    <aside aria-label="Main navigation" className={cn("sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-150 lg:flex", collapsed ? "w-[72px]" : "w-[206px] xl:w-[228px]")}>
+    <aside aria-label="Main navigation" className={cn("sticky top-0 hidden h-dvh shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-150 lg:flex", collapsed ? "w-[54px]" : "w-[206px] xl:w-[228px]")}>
       <div className={cn("flex items-center border-b border-sidebar-border py-5", collapsed ? "justify-center px-2" : "gap-3 px-4")}>
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 text-brand">
+        <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", collapsed ? "bg-black text-white" : "bg-orange-50 text-brand")}>
           <ChefHat className="h-7 w-7" />
         </div>
         <div className={cn("min-w-0", collapsed && "hidden")}>
@@ -75,7 +75,7 @@ export function AppSidebar({ collapsed = false }: { collapsed?: boolean }) {
       </nav>
 
       {collapsed && hoveredTab && typeof document !== "undefined" && createPortal(
-        <div role="tooltip" className="pointer-events-none fixed left-[80px] z-[9999] whitespace-nowrap rounded-lg border border-orange-200 bg-slate-950 px-3 py-2 text-sm font-semibold text-white shadow-xl dark:border-orange-700" style={{ top: hoveredTab.top }}>
+        <div role="tooltip" className="pointer-events-none fixed left-[61px] z-[9999] whitespace-nowrap rounded-lg border border-orange-200 bg-slate-950 px-3 py-2 text-sm font-semibold text-white shadow-xl dark:border-orange-700" style={{ top: hoveredTab.top }}>
           {hoveredTab.label}
         </div>,
         document.body
