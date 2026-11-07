@@ -18,6 +18,34 @@ beforeEach(() => {
   });
 });
 
+describe("expandable POS line discount calculation", () => {
+  test("percentage discount updates line amount and survives quantity changes", () => {
+    useStore.getState().updateItemDiscountPercent(item.lineId, 20);
+    expect(useStore.getState().cart[0].discount).toBe(130);
+    expect(useStore.getState().cart[0].discountPercent).toBe(20);
+    useStore.getState().updateQty(item.lineId, 2);
+    expect(useStore.getState().cart[0].qty).toBe(2);
+    expect(useStore.getState().cart[0].discount).toBe(260);
+    expect(useStore.getState().cart[0].discountPercent).toBe(20);
+    const order = useStore.getState().checkout(1200, "cash");
+    expect(order.itemDiscount).toBe(260);
+    expect(order.subtotal).toBe(1300);
+    expect(order.total).toBe(1092);
+  });
+
+  test("discount stays within 0–100 percent; legacy fixed discount remains valid", () => {
+    useStore.getState().updateItemDiscountPercent(item.lineId, 200);
+    expect(useStore.getState().cart[0].discount).toBe(650);
+    expect(useStore.getState().cart[0].discountPercent).toBe(100);
+    useStore.getState().updateItemDiscountPercent(item.lineId, -30);
+    expect(useStore.getState().cart[0].discount).toBe(0);
+    useStore.getState().updateItemDiscount(item.lineId, 100);
+    expect(useStore.getState().cart[0].discountPercent).toBeUndefined();
+    useStore.getState().updateQty(item.lineId, 2);
+    expect(useStore.getState().cart[0].discount).toBe(100);
+  });
+});
+
 describe("restaurant kitchen and receiving workflow", () => {
   test("kitchen statuses follow order and survive unrelated store updates", () => {
     const order = useStore.getState().checkout(700, "cash");
