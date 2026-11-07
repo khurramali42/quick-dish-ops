@@ -117,7 +117,7 @@ with sync_playwright() as playwright:
     page.set_viewport_size({"width": 390, "height": 844})
     visit(page, "/pos")
     capture(page, "mobile-pos.png", minimum_bytes=4500)
-    order_toggle = page.get_by_role("button", name=re.compile(r"^Order \\("))
+    order_toggle = page.get_by_role("button", name=re.compile(r"^Order \("))
     order_toggle.click()
     capture(page, "mobile-cart.png", minimum_bytes=4500)
 
