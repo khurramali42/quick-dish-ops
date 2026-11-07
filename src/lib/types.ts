@@ -85,6 +85,7 @@ export interface CartItem {
   discount: number; // absolute monetary discount on entire line
   discountPercent?: number; // optional 0-100%; retains percentage when quantity changes
   unitCostSnapshot?: number; // cost at time of sale, for historical profit calculations
+  categoryIdSnapshot?: string; // category at time of sale for historical reporting
   taxRate: number;
 }
 
