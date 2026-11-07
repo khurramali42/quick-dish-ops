@@ -115,7 +115,7 @@ export function BackendGate({ children }: { children: ReactNode }) {
       <span className="flex items-center gap-1.5 truncate"><Database className="h-3 w-3 shrink-0 text-orange-300" /> Private workspace · <UserRound className="h-3 w-3 shrink-0" /> {session?.user.email || "Signed in"}</span>
       <span className="flex items-center gap-2">
         <span role="status" className={sync.status === "conflict" ? "font-bold text-red-300" : "text-slate-300"}>{sync.status === "saving" ? "Saving..." : sync.status === "conflict" ? "Sync blocked" : "Synced"}</span>
-        <button type="button" onClick={() => { void logout(); }} className="flex items-center gap-1 rounded px-2 py-0.5 hover:bg-white/15"><LogOut className="h-3 w-3" /> Sign out</button>
+        <button type="button" disabled={sync.status === "saving"} onClick={() => { void logout(); }} className="flex items-center gap-1 rounded px-2 py-0.5 hover:bg-white/15 disabled:cursor-wait disabled:opacity-50"><LogOut className="h-3 w-3" /> Sign out</button>
       </span>
     </div>
     {sync.status === "conflict" ? <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 px-4">
@@ -126,6 +126,6 @@ export function BackendGate({ children }: { children: ReactNode }) {
         <button onClick={() => window.location.reload()} className="mt-4 rounded-lg bg-brand-gradient px-4 py-2 text-sm font-bold text-white">Reload from database</button>
       </section>
     </div> : null}
-    {children}
+    <div className="hosted-app-shell">{children}</div>
   </div>;
 }
