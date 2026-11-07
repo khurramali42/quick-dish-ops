@@ -18,7 +18,7 @@ function ReportsPage() {
   const completedOrders = orders.filter((o) => o.status !== "refunded" && o.status !== "cancelled");
   const grossSales = completedOrders.reduce((s, o) => s + o.total, 0);
   const totalCost = completedOrders.reduce((s, o) =>
-    s + o.items.reduce((c, i) => c + (products.find((p) => p.id === i.productId)?.cost ?? 0) * i.qty, 0), 0);
+    s + o.items.reduce((c, i) => c + (i.unitCostSnapshot ?? products.find((p) => p.id === i.productId)?.cost ?? 0) * i.qty, 0), 0);
   const totalExpense = expenses.reduce((s, e) => s + e.amount, 0);
   const totalTax = completedOrders.reduce((s, o) => s + o.tax, 0);
   const totalDiscount = completedOrders.reduce((s, o) => s + o.itemDiscount + o.billDiscount, 0);
