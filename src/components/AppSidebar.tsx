@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  LayoutDashboard, ShoppingCart, Package, Tag, Boxes, ClipboardList, Users,
+  LayoutDashboard, ShoppingCart, Package, Tag, Boxes, ClipboardList, Users, Armchair,
   Truck, ReceiptText, BarChart3, ChefHat, Settings, Wallet, Moon, Sun, Menu, X, Maximize, Minimize,
 } from "lucide-react";
 import { useStore } from "@/lib/store";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 const nav = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/pos", label: "POS", icon: ShoppingCart, highlight: true },
+  { to: "/tables", label: "Tables & Booking", icon: Armchair },
   { to: "/kitchen", label: "Kitchen", icon: ChefHat },
   { to: "/orders", label: "Orders", icon: ClipboardList },
   { to: "/products", label: "Products", icon: Package },
