@@ -140,7 +140,7 @@ export const useStore = create<State>()(
         const starts = Date.parse(input.startAt);
         if (!Number.isFinite(starts) || starts < Date.now() - 60_000) throw new Error("Select a valid future date and time.");
         if (!Number.isInteger(input.durationMinutes) || input.durationMinutes < 30 || input.durationMinutes > 240) throw new Error("Invalid reservation duration.");
-        if (get().reservations.some((r) => r.tableId === table.id && ["booked", "seated"].includes(r.status) && bookingOverlap(starts, input.durationMinutes, Date.parse(r.startAt), r.durationMinutes))) {
+        if (get().reservations.some((r) => r.tableId === table.id && (r.status === "seated" || (r.status === "booked" && bookingOverlap(starts, input.durationMinutes, Date.parse(r.startAt), r.durationMinutes))))) {
           throw new Error("This table is already booked for the chosen time.");
         }
         if (get().heldOrders.some((o) => o.orderType === "dine-in" && o.table === table.label) || (get().cart.length > 0 && get().orderType === "dine-in" && get().table === table.label)) {
@@ -175,7 +175,7 @@ export const useStore = create<State>()(
       setTableEnabled: (id, enabled) => {
         const table = get().restaurantTables.find((t) => t.id === id);
         if (!table) throw new Error("Table not found.");
-        if (!enabled && (get().reservations.some((r) => r.tableId === id && ["booked", "seated"].includes(r.status) && Date.parse(r.startAt) + r.durationMinutes * 60_000 > Date.now()) || get().heldOrders.some((o) => o.table === table.label))) {
+        if (!enabled && (get().reservations.some((r) => r.tableId === id && ["booked", "seated"].includes(r.status) && Date.parse(r.startAt) + r.durationMinutes * 60_000 > Date.now()) || get().heldOrders.some((o) => o.table === table.label) || (get().cart.length > 0 && get().orderType === "dine-in" && get().table === table.label))) {
           throw new Error("Complete or cancel active reservations and orders before disabling this table.");
         }
         set({ restaurantTables: get().restaurantTables.map((t) => t.id === id ? { ...t, enabled } : t) });
