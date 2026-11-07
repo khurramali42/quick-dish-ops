@@ -355,7 +355,7 @@ export const useStore = create<State>()(
           customerName: customer?.name,
           table,
           orderType,
-          items: cart.map((item) => ({ ...item, modifiers: item.modifiers.map((m) => ({ ...m })), unitCostSnapshot: products.find((p) => p.id === item.productId)?.cost ?? item.unitCostSnapshot ?? 0 })),
+          items: cart.map((item) => ({ ...item, modifiers: item.modifiers.map((m) => ({ ...m })), unitCostSnapshot: products.find((p) => p.id === item.productId)?.cost ?? item.unitCostSnapshot ?? 0, categoryIdSnapshot: products.find((p) => p.id === item.productId)?.categoryId ?? item.categoryIdSnapshot })),
           subtotal: t.subtotal,
           itemDiscount: t.itemDiscount,
           billDiscount: t.appliedBillDiscount,
