@@ -5,6 +5,7 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Download, Upload, RotateCcw } from "lucide-react";
 import type { Settings } from "@/lib/types";
+import { backendConfigured, backendUrl } from "@/lib/optional-backend";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — Spice Kitchen POS" }] }),
@@ -170,12 +171,12 @@ function SettingsPage() {
         <div className="space-y-4">
           <div className="card-elevated p-6">
             <h3 className="font-semibold mb-3">Backup & Data</h3>
-            <p className="mb-3 text-xs leading-5 text-muted-foreground">Records are saved in this browser only. Version 2 backup includes tables, reservations and held orders. Keep backup files private: they contain customer and business information.</p>
+            <p className="mb-3 text-xs leading-5 text-muted-foreground">{backendConfigured ? "Signed-in workspace data is saved to your own configured database. JSON exports include private information; protect backup files." : "Records are saved in this browser only. Backup v2 includes tables, reservations and held orders. Keep private exports secure."}</p>
             <div className="space-y-2">
               <button onClick={exportAll} className="w-full flex items-center gap-2 justify-center px-4 py-2 rounded-lg border text-sm hover:bg-accent"><Download className="h-4 w-4" /> Export backup (JSON)</button>
               <input ref={importRef} type="file" accept=".json,application/json" className="sr-only" aria-label="Choose POS backup" onChange={(e) => void importBackup(e.target.files?.[0])} />
               <button onClick={() => importRef.current?.click()} className="w-full flex items-center gap-2 justify-center px-4 py-2 rounded-lg border text-sm hover:bg-accent"><Upload className="h-4 w-4" /> Restore JSON backup</button>
-              <button onClick={() => { if (confirm("Reset ALL local data? This cannot be undone.")) resetAll(); }} className="w-full flex items-center gap-2 justify-center px-4 py-2 rounded-lg border border-destructive text-destructive text-sm hover:bg-destructive/5"><RotateCcw className="h-4 w-4" /> Reset all data</button>
+              <button type="button" disabled={backendConfigured} onClick={() => { try { if (confirm("Reset ALL local demo data? This cannot be undone.")) resetAll(); } catch (error) { toast.error(error instanceof Error ? error.message : "Reset unavailable"); } }} className="w-full flex items-center gap-2 justify-center px-4 py-2 rounded-lg border border-destructive text-destructive text-sm hover:bg-destructive/5 disabled:cursor-not-allowed disabled:opacity-40"><RotateCcw className="h-4 w-4" /> {backendConfigured ? "Cloud reset disabled" : "Reset local demo data"}</button>
             </div>
           </div>
 
@@ -205,6 +206,7 @@ function SettingsPage() {
           </div>
           <div className="card-elevated p-6 text-sm">
             <h3 className="font-semibold mb-3">System info</h3>
+            <p className="mb-3 rounded-lg bg-muted/40 p-2 text-xs">{backendConfigured ? "Own backend configured: " + backendUrl + ". Each account has an RLS-protected workspace; payments remain simulated." : "Local demo mode. See docs/SELF_HOSTING.md to configure your own project and login."}</p>
             <ul className="space-y-1 text-muted-foreground">
               <li>Products: {products.length}</li>
               <li>Categories: {categories.length}</li>
