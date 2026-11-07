@@ -66,6 +66,7 @@ or multi-device synchronization.
 - Staff names are labels, not authenticated identities; local activity events
   can be modified by browser users and are not a secure audit trail.
 - No real manager approval enforcement or tamper-proof audit trail. Local demo review controls are accessible to any browser user.
+- Optional own-Supabase email login and owner-isolated workspace persistence are documented in [SELF_HOSTING.md](SELF_HOSTING.md). This does not provide shared staff roles or server-verified financial transactions.
 - No real multi-user synchronization, payment gateway, restaurant-grade
   accounting ledger, per-table settlement or printer certification.
 - Inventory recipes work with quantities as configured and can use fractional
