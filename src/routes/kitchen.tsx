@@ -4,7 +4,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { useStore } from "@/lib/store";
 import { formatDateTime } from "@/lib/format";
 import { BellRing, Check, CheckCheck, ChefHat, CircleDot, Clock3, Flame, ListFilter, Ban, UtensilsCrossed } from "lucide-react";
-import type { Order } from "@/lib/types";
+import type { Order, ParkedOrder, CartItem } from "@/lib/types";
 
 export const Route = createFileRoute("/kitchen")({
   head: () => ({ meta: [{ title: "Kitchen Display — Spice Kitchen POS" }] }),
@@ -30,15 +30,31 @@ const stages: {
 function elapsedMinutes(createdAt: string, now: number) {
   return Math.max(0, Math.floor((now - Date.parse(createdAt)) / 60_000));
 }
+function localTicketToOrder(ticket: Pick<ParkedOrder, "id" | "orderType" | "table" | "cashier" | "kitchenDispatchedAt" | "kitchenStatus" | "kitchenDoneLineIds" | "kitchenChef">, lines: CartItem[]): Order {
+  return {
+    id: ticket.id, invoiceNo: "UNPAID-" + ticket.id, createdAt: ticket.kitchenDispatchedAt ?? new Date().toISOString(),
+    cashier: ticket.cashier ?? "Cashier", orderType: ticket.orderType, table: ticket.table,
+    items: lines, subtotal: 0, itemDiscount: 0, billDiscount: 0, tax: 0, serviceCharge: 0,
+    deliveryCharge: 0, total: 0, paid: 0, change: 0, paymentMethod: "cash",
+    status: "completed", kitchenStatus: ticket.kitchenStatus ?? "new",
+    kitchenDoneLineIds: ticket.kitchenDoneLineIds, kitchenChef: ticket.kitchenChef,
+  };
+}
 function KitchenPage() {
-  const { orders, products, setKitchenStatus, toggleKitchenItem, assignKitchenChef } = useStore();
+  const { orders, products, heldOrders, activeKitchenTicket, cart, orderType, table, currentCashier, setKitchenStatus, toggleKitchenItem, assignKitchenChef } = useStore();
   const [filter, setFilter] = useState<Filter>("all");
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const ticker = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(ticker);
   }, []);
-  const kitchenOrders = orders.filter((order) => order.status === "completed");
+  const unpaidHeld = heldOrders.filter((held) => !!held.kitchenStatus);
+  const unpaidTicketIds = new Set([...unpaidHeld.map((ticket) => ticket.id), ...(activeKitchenTicket ? [activeKitchenTicket.id] : [])]);
+  const kitchenOrders = [
+    ...orders.filter((order) => order.status === "completed"),
+    ...unpaidHeld.map((held) => localTicketToOrder(held, held.cart)),
+    ...(activeKitchenTicket && cart.length ? [localTicketToOrder({ ...activeKitchenTicket, orderType, table, cashier: currentCashier }, cart)] : []),
+  ];
   const active = kitchenOrders.filter((order) => (order.kitchenStatus ?? "new") !== "served");
   const servedCount = kitchenOrders.filter((order) => order.kitchenStatus === "served").length;
   const cancelledCount = orders.filter((order) => order.status === "cancelled" || order.status === "refunded").length;
@@ -112,6 +128,7 @@ function KitchenPage() {
                           </div>
                         </div>
                         <p className="mt-1.5 text-[10px] text-muted-foreground">Placed {formatDateTime(order.createdAt)}</p>
+                        {unpaidTicketIds.has(order.id) && <span className="mt-1.5 inline-block rounded-md bg-amber-100 px-2 py-1 text-[10px] font-extrabold text-amber-900">Awaiting payment · Local kitchen ticket</span>}
                         {stage.key !== "ready" && (
                           <select aria-label={`Assigned chef for ${order.invoiceNo}`} value={order.kitchenChef || ""} onChange={(e) => assignKitchenChef(order.id, e.target.value)} className="mt-2 h-8 w-full rounded-md border bg-card px-2 text-[11px]">
                             <option value="">Unassigned station</option><option value="Head chef">Head chef</option><option value="Line cook">Line cook</option><option value="Prep station">Prep station</option>
@@ -143,7 +160,7 @@ function KitchenPage() {
             );
           })}
         </div>
-        <p className="mt-4 text-[11px] text-muted-foreground">Order status and chef station assignments are stored in this browser only. Kitchen tickets currently appear after checkout, not before payment.</p>
+        <p className="mt-4 text-[11px] text-muted-foreground">Order status and chef station assignments are stored in this browser only. Unpaid tickets can be dispatched from POS before checkout in this browser demo; real shared kitchen sync and payment authorization are not implemented.</p>
       </div>
     </AppLayout>
   );
