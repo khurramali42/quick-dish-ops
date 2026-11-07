@@ -13,9 +13,12 @@ export const Route = createFileRoute("/purchases")({
 });
 
 function PurchasesPage() {
-  const { purchases, suppliers, products, addPurchase, settings } = useStore();
+  const { purchases, suppliers, products, addPurchase, settlePurchase, settings } = useStore();
   const [open, setOpen] = useState(false);
   const [paid, setPaid] = useState<number | null>(null);
+  const [settling, setSettling] = useState<string | null>(null);
+  const [settlementAmount, setSettlementAmount] = useState(0);
+  const [settlementMethod, setSettlementMethod] = useState<"cash" | "card" | "bank" | "easypaisa" | "jazzcash">("cash");
   const [supplierId, setSupplierId] = useState(suppliers[0]?.id ?? "");
   const [rows, setRows] = useState<{ productId: string; qty: number; cost: number }[]>([{ productId: products[0]?.id ?? "", qty: 1, cost: products[0]?.cost ?? 0 }]);
 
@@ -61,7 +64,7 @@ function PurchasesPage() {
       <div className="card-elevated overflow-hidden">
         <div className="table-scroll"><table className="w-full text-sm">
           <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
-            <tr><th className="text-left px-4 py-2">Invoice</th><th className="text-left px-4 py-2">Date</th><th className="text-left px-4 py-2">Supplier</th><th className="text-left px-4 py-2">Items</th><th className="text-right px-4 py-2">Paid</th><th className="text-right px-4 py-2">Payable</th><th className="text-right px-4 py-2">Total</th></tr>
+            <tr><th className="text-left px-4 py-2">Invoice</th><th className="text-left px-4 py-2">Date</th><th className="text-left px-4 py-2">Supplier</th><th className="text-left px-4 py-2">Items</th><th className="text-right px-4 py-2">Paid</th><th className="text-right px-4 py-2">Payable</th><th className="text-right px-4 py-2">Total</th><th className="text-right px-4 py-2">Actions</th></tr>
           </thead>
           <tbody className="divide-y">
             {purchases.map((p) => (
@@ -73,13 +76,29 @@ function PurchasesPage() {
                 <td className="px-4 py-2.5 text-right">{money(p.paid, settings.currency)}</td>
                 <td className="px-4 py-2.5 text-right font-semibold text-brand">{money(Math.max(0, p.total - p.paid), settings.currency)}</td>
                 <td className="px-4 py-2.5 text-right font-medium">{money(p.total, settings.currency)}</td>
+                <td className="px-4 py-2.5 text-right"><button type="button" disabled={p.paid >= p.total} onClick={() => { setSettling(p.id); setSettlementAmount(Math.round((p.total - p.paid) * 100) / 100); }} className="rounded-lg border px-2.5 py-1.5 text-xs font-semibold text-brand hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40">Pay balance</button></td>
               </tr>
             ))}
-            {purchases.length === 0 && <tr><td colSpan={7} className="text-center text-muted-foreground py-16">No purchases recorded.</td></tr>}
+            {purchases.length === 0 && <tr><td colSpan={8} className="text-center text-muted-foreground py-16">No purchases recorded.</td></tr>}
           </tbody>
         </table></div>
       </div>
 
+      <Dialog open={settling !== null} onOpenChange={(value) => !value && setSettling(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Supplier Payment</DialogTitle></DialogHeader>
+          <p className="text-xs text-muted-foreground">Record a payment against this purchase. This is a local ledger entry, not a real money transfer.</p>
+          <label className="block text-xs font-semibold">Amount
+            <input aria-label="Supplier settlement amount" type="number" min={0.01} max={purchases.find((p) => p.id === settling)?.total} step="0.01" value={settlementAmount} onChange={(e) => setSettlementAmount(Number(e.target.value))} className="input mt-1 w-full" />
+          </label>
+          <label className="block text-xs font-semibold">Method
+            <select aria-label="Supplier settlement method" value={settlementMethod} onChange={(e) => setSettlementMethod(e.target.value as typeof settlementMethod)} className="input mt-1 w-full">
+              {["cash", "card", "bank", "easypaisa", "jazzcash"].map((method) => <option key={method} value={method}>{method}</option>)}
+            </select>
+          </label>
+          <button type="button" className="rounded-lg bg-brand-gradient px-3 py-2 text-sm font-bold text-brand-foreground" onClick={() => { try { if (!settling) return; settlePurchase(settling, settlementAmount, settlementMethod); setSettling(null); toast.success("Supplier settlement saved to local ledger"); } catch (error) { toast.error(error instanceof Error ? error.message : "Invalid settlement"); } }}>Record Payment</button>
+        </DialogContent>
+      </Dialog>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto">
           <DialogHeader><DialogTitle>New purchase</DialogTitle></DialogHeader>
