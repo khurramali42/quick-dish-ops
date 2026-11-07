@@ -15,6 +15,7 @@ export const Route = createFileRoute("/purchases")({
 function PurchasesPage() {
   const { purchases, suppliers, products, addPurchase, settings } = useStore();
   const [open, setOpen] = useState(false);
+  const [paid, setPaid] = useState<number | null>(null);
   const [supplierId, setSupplierId] = useState(suppliers[0]?.id ?? "");
   const [rows, setRows] = useState<{ productId: string; qty: number; cost: number }[]>([{ productId: products[0]?.id ?? "", qty: 1, cost: products[0]?.cost ?? 0 }]);
 
@@ -39,9 +40,10 @@ function PurchasesPage() {
       cost: row.cost,
     }));
     try {
-      addPurchase({ supplierId, supplierName: supplier.name, date: todayISO(), items, total, paid: total });
+      addPurchase({ supplierId, supplierName: supplier.name, date: todayISO(), items, total, paid: paid === null ? total : paid });
       toast.success("Purchase recorded · stock updated");
       setOpen(false);
+      setPaid(null);
       setRows([{ productId: products[0]?.id ?? "", qty: 1, cost: products[0]?.cost ?? 0 }]);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to record purchase.");
@@ -59,7 +61,7 @@ function PurchasesPage() {
       <div className="card-elevated overflow-hidden">
         <div className="table-scroll"><table className="w-full text-sm">
           <thead className="bg-muted/40 text-xs uppercase text-muted-foreground">
-            <tr><th className="text-left px-4 py-2">Invoice</th><th className="text-left px-4 py-2">Date</th><th className="text-left px-4 py-2">Supplier</th><th className="text-left px-4 py-2">Items</th><th className="text-right px-4 py-2">Total</th></tr>
+            <tr><th className="text-left px-4 py-2">Invoice</th><th className="text-left px-4 py-2">Date</th><th className="text-left px-4 py-2">Supplier</th><th className="text-left px-4 py-2">Items</th><th className="text-right px-4 py-2">Paid</th><th className="text-right px-4 py-2">Payable</th><th className="text-right px-4 py-2">Total</th></tr>
           </thead>
           <tbody className="divide-y">
             {purchases.map((p) => (
@@ -68,10 +70,12 @@ function PurchasesPage() {
                 <td className="px-4 py-2.5 text-muted-foreground">{formatDateTime(p.date)}</td>
                 <td className="px-4 py-2.5">{p.supplierName}</td>
                 <td className="px-4 py-2.5">{p.items.map((i) => `${i.name} × ${i.qty}`).join(", ")}</td>
+                <td className="px-4 py-2.5 text-right">{money(p.paid, settings.currency)}</td>
+                <td className="px-4 py-2.5 text-right font-semibold text-brand">{money(Math.max(0, p.total - p.paid), settings.currency)}</td>
                 <td className="px-4 py-2.5 text-right font-medium">{money(p.total, settings.currency)}</td>
               </tr>
             ))}
-            {purchases.length === 0 && <tr><td colSpan={5} className="text-center text-muted-foreground py-16">No purchases recorded.</td></tr>}
+            {purchases.length === 0 && <tr><td colSpan={7} className="text-center text-muted-foreground py-16">No purchases recorded.</td></tr>}
           </tbody>
         </table></div>
       </div>
@@ -96,6 +100,12 @@ function PurchasesPage() {
               </div>
             ))}
             <button onClick={() => setRows(rs => [...rs, { productId: products[0]?.id ?? "", qty: 1, cost: products[0]?.cost ?? 0 }])} className="text-xs px-3 py-1.5 rounded border hover:bg-accent">+ Add line</button>
+          </div>
+          <div className="grid grid-cols-2 gap-3 rounded-xl border bg-muted/30 p-3">
+            <label className="space-y-1 text-xs font-semibold">Paid now
+              <input aria-label="Purchase paid amount" type="number" min={0} max={total} step="0.01" value={paid === null ? total : paid} onChange={(e) => setPaid(Number(e.target.value))} className="h-9 w-full rounded-lg border bg-background px-3 text-sm" />
+            </label>
+            <div><div className="text-xs text-muted-foreground">Supplier payable</div><div className="mt-1 text-lg font-bold">{money(Math.max(0, total - (paid === null ? total : paid)), settings.currency)}</div></div>
           </div>
           <div className="flex justify-between items-center border-t pt-3">
             <span className="text-sm">Total</span>
