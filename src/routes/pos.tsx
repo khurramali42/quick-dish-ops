@@ -5,7 +5,7 @@ import { money } from "@/lib/format";
 import type { OrderType, PaymentMethod, Product } from "@/lib/types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Search, X, Plus, Minus, ChevronLeft, ChevronRight, Trash2, Pause, Play, Printer, Percent, CreditCard,
+  Search, X, Plus, Minus, ChevronLeft, ChevronRight, Trash2, Pause, Play, Printer, Percent, CreditCard, ClipboardList, Clock3, CheckCircle2,
   Utensils, Bike, ShoppingBag, Truck, Keyboard, User, StickyNote,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -36,7 +36,7 @@ function POSScreen() {
     cart, addToCart, updateQty, removeLine, clearCart, updateItemDiscount, updateNote,
     orderType, setOrderType, table, setTable, customerId, setCustomer, customers,
     billDiscount, setBillDiscount, heldOrders, holdOrder, recallOrder,
-    settings, checkout, currentCashier,
+    settings, checkout, currentCashier, orders,
   } = useStore();
   const totals = useCartTotals();
   const [payOpen, setPayOpen] = useState(false);
@@ -46,6 +46,8 @@ function POSScreen() {
   const [parkStatus, setParkStatus] = useState<"held" | "pending-payment" | null>(null);
   const [receipt, setReceipt] = useState<Order | null>(null);
   const [mobilePane, setMobilePane] = useState<"menu" | "cart">("menu");
+  const [queueFilter, setQueueFilter] = useState<"all" | "held" | "ready">("all");
+  const [selectedPastOrder, setSelectedPastOrder] = useState<Order | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
 
@@ -94,66 +96,32 @@ function POSScreen() {
   return (
     <AppLayout fullBleed>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        {/* Top bar */}
-        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b bg-card px-3 py-2.5 shadow-sm sm:gap-3 sm:px-4 lg:flex-nowrap lg:gap-2">
-          <div className="relative order-1 w-full min-w-0 lg:w-auto lg:min-w-[190px] lg:flex-1">
-            <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              ref={searchRef}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search item, SKU or scan barcode…  (F1)"
-              className="w-full h-10 pl-10 pr-9 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring/40"
-            />
-            {search && (
-              <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                <X className="h-4 w-4" />
-              </button>
-            )}
+        {/* Cashier workspace: order mode above product search, with independent scroll panes. */}
+        <div className="shrink-0 border-b bg-card px-3 py-3 sm:px-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <div className="text-base font-extrabold tracking-tight">Cashier Workspace <span className="ml-1 rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-bold text-brand dark:bg-accent">POS</span></div>
+              <p className="text-[11px] text-muted-foreground">Manage orders, menu and billing in one place</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => { if (cart.length) { if (confirm("Clear the current order and start a new one?")) clearCart(); } else clearCart(); setMobilePane("menu"); }} className="flex h-9 items-center gap-1.5 rounded-lg bg-brand-gradient px-3 text-xs font-bold text-brand-foreground"><Plus className="h-3.5 w-3.5" /> New Order</button>
+              <button onClick={() => setHeldOpen(true)} className="flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold hover:bg-accent"><ClipboardList className="h-3.5 w-3.5" /> Saved <span className="rounded-full bg-muted px-1.5">{heldOrders.length}</span></button>
+            </div>
           </div>
-
-          <div className="order-2 flex max-w-full shrink-0 items-center gap-1 overflow-x-auto rounded-lg border bg-muted/40 p-1">
-            {orderTypes.map((t) => {
-              const Icon = t.icon;
-              const active = orderType === t.key;
-              return (
-                <button
-                  key={t.key}
-                  onClick={() => setOrderType(t.key)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${active ? "bg-brand-gradient text-brand-foreground" : "hover:bg-accent"}`}
-                >
-                  <Icon className="h-3.5 w-3.5" /> {t.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {orderType === "dine-in" && (
-            <select
-              value={table ?? ""}
-              onChange={(e) => setTable(e.target.value || undefined)}
-              className="order-2 h-9 min-w-[104px] max-w-[130px] shrink-0 rounded-lg border bg-background px-2 text-xs sm:px-3"
-            >
-              <option value="">Select Table</option>
-              {Array.from({ length: 12 }, (_, i) => `T${i + 1}`).map((t) => <option key={t} value={t}>{t}</option>)}
-            </select>
-          )}
-
-          <select
-            value={customerId ?? ""}
-            onChange={(e) => setCustomer(e.target.value || undefined)}
-            className="order-2 h-10 w-[145px] shrink-0 rounded-lg border bg-background px-3 text-sm"
-          >
-            {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-
-          <div className="order-2 ml-auto hidden items-center gap-3 text-xs 2xl:flex">
-            <button onClick={() => setHelpOpen(true)} className="flex items-center gap-1 px-3 py-2 rounded-lg hover:bg-accent">
-              <Keyboard className="h-4 w-4" /> Shortcuts
-            </button>
-            <div className="text-right">
-              <div className="font-medium flex items-center gap-1"><User className="h-3 w-3" /> {currentCashier}</div>
-              <div className="text-muted-foreground">{new Date().toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" })}</div>
+          <div className="mt-3 flex min-w-0 flex-wrap items-center gap-2">
+            <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg bg-muted/65 p-1">
+              {orderTypes.map((t) => {
+                const Icon = t.icon;
+                const active = orderType === t.key;
+                return <button key={t.key} onClick={() => setOrderType(t.key)} aria-pressed={active} className={`flex shrink-0 items-center gap-1.5 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${active ? "bg-card text-brand shadow-sm ring-1 ring-border" : "text-muted-foreground hover:bg-card/80"}`}><Icon className="h-3.5 w-3.5" /> {t.label}</button>;
+              })}
+            </div>
+            {orderType === "dine-in" && <select aria-label="Choose table" value={table ?? ""} onChange={(e) => setTable(e.target.value || undefined)} className="h-9 min-w-[110px] rounded-lg border bg-background px-2 text-xs"><option value="">Select Table</option>{Array.from({ length: 12 }, (_, i) => `T${i + 1}`).map((t) => <option key={t} value={t}>{t}</option>)}</select>}
+            <select aria-label="Choose customer" value={customerId ?? ""} onChange={(e) => setCustomer(e.target.value || undefined)} className="h-9 min-w-[130px] max-w-[180px] rounded-lg border bg-background px-2 text-xs"><option value="">Walk-in customer</option>{customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+            <div className="relative min-w-[180px] flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input ref={searchRef} value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search products or scan barcode (F1)" aria-label="Search products" className="h-9 w-full rounded-lg border bg-background pl-9 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-ring/40" />
+              {search && <button aria-label="Clear product search" onClick={() => setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground"><X className="h-3.5 w-3.5" /></button>}
             </div>
           </div>
         </div>
@@ -164,6 +132,33 @@ function POSScreen() {
         </div>
         {/* Every pane has an independent scroll area. */}
         <div className="flex min-h-0 flex-1 overflow-hidden">
+          {/* Desktop order queue. Clicking a saved ticket safely resumes it only when the current cart is empty. */}
+          <aside aria-label="Order queue" className="hidden min-h-0 w-[205px] shrink-0 flex-col border-r bg-card xl:flex 2xl:w-[240px]">
+            <div className="shrink-0 border-b px-3 py-3">
+              <div className="flex items-center justify-between"><h2 className="text-sm font-extrabold">Order List</h2><span className="rounded-md bg-accent px-2 py-0.5 text-xs font-bold text-brand">{heldOrders.length + orders.length}</span></div>
+              <div className="mt-2 flex gap-1">
+                {(["all", "held", "ready"] as const).map((filter) => <button key={filter} onClick={() => setQueueFilter(filter)} className={`flex-1 rounded-md px-1.5 py-1.5 text-[11px] font-semibold capitalize ${queueFilter === filter ? "bg-orange-50 text-brand dark:bg-accent" : "text-muted-foreground hover:bg-muted"}`}>{filter === "held" ? "Pending" : filter}</button>)}
+              </div>
+            </div>
+            <div className="scrollbar-thin min-h-0 flex-1 space-y-2 overflow-y-auto p-2.5">
+              {(queueFilter !== "ready") && [...heldOrders].reverse().map((held) => (
+                <button key={held.id} type="button" onClick={() => { try { recallOrder(held.id); toast.success("Order resumed"); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not resume order"); } }} className="w-full rounded-lg border border-orange-200 bg-orange-50/40 p-3 text-left transition hover:border-brand hover:bg-orange-50 dark:border-border dark:bg-accent/20">
+                  <div className="flex items-center justify-between gap-1"><span className="truncate text-xs font-extrabold">#{held.id.slice(-6)}</span><span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">{held.status === "pending-payment" ? "Payment" : "Held"}</span></div>
+                  <div className="mt-1 text-[11px] capitalize text-muted-foreground">{held.orderType}{held.table ? " · " + held.table : ""}</div>
+                  <div className="mt-2 text-[11px] font-semibold">{held.cart.reduce((n, item) => n + item.qty, 0)} items <span className="float-right text-brand">Resume</span></div>
+                </button>
+              ))}
+              {orders.filter((order) => queueFilter === "all" || (queueFilter === "ready" && order.kitchenStatus === "ready")).slice(0, 30).map((order) => (
+                <button key={order.id} type="button" onClick={() => setSelectedPastOrder(order)} className="w-full rounded-lg border bg-background p-3 text-left transition hover:border-brand/40 hover:shadow-sm">
+                  <div className="flex items-center justify-between gap-1"><span className="truncate text-xs font-extrabold">{order.invoiceNo}</span><span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${order.kitchenStatus === "ready" ? "bg-emerald-100 text-emerald-800" : order.kitchenStatus === "preparing" ? "bg-amber-100 text-amber-800" : "bg-muted text-muted-foreground"}`}>{order.kitchenStatus === "ready" ? "Ready" : order.kitchenStatus === "preparing" ? "Preparing" : order.status}</span></div>
+                  <div className="mt-1 text-[11px] capitalize text-muted-foreground">{order.orderType}{order.table ? " · " + order.table : ""}</div>
+                  <div className="mt-2 flex justify-between text-[11px]"><span>{order.items.reduce((n, i) => n + i.qty, 0)} items</span><span className="font-bold">{money(order.total, settings.currency)}</span></div>
+                </button>
+              ))}
+              {heldOrders.length === 0 && orders.length === 0 && <div className="px-2 py-12 text-center text-xs text-muted-foreground"><ClipboardList className="mx-auto mb-2 h-7 w-7 opacity-40" />No orders yet. Save an order to see it here.</div>}
+            </div>
+            <button onClick={() => setHeldOpen(true)} className="shrink-0 border-t px-3 py-3 text-xs font-bold text-brand hover:bg-accent">Manage saved orders</button>
+          </aside>
           <div className={mobilePane === "menu" ? "flex min-h-0 min-w-0 flex-1 overflow-hidden md:flex" : "hidden min-h-0 min-w-0 flex-1 overflow-hidden md:flex"}>
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           {/* Category filters have a visible themed horizontal scrollbar and accessible arrow controls. */}
@@ -184,7 +179,7 @@ function POSScreen() {
 
           {/* Product grid */}
           <div className="scrollbar-thin min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-background p-2.5 sm:p-3 xl:p-4">
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,145px),1fr))] gap-3 xl:gap-3.5">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,150px),1fr))] gap-3 xl:gap-3.5">
               {filtered.map((p) => <ProductCard key={p.id} product={p} onSelect={() => addToCart(p)} />)}
               {filtered.length === 0 && (
                 <div className="col-span-full text-center text-muted-foreground py-16">No items match.</div>
@@ -195,7 +190,7 @@ function POSScreen() {
 
           </div>
           {/* Current order with pinned totals. */}
-          <section aria-label="Current order" className={mobilePane === "cart" ? "flex min-h-0 w-full min-w-0 shrink-0 flex-col overflow-hidden border-l bg-card md:flex md:w-[310px] lg:w-[340px] xl:w-[380px] 2xl:w-[400px]" : "hidden min-h-0 w-full min-w-0 shrink-0 flex-col overflow-hidden border-l bg-card md:flex md:w-[310px] lg:w-[340px] xl:w-[380px] 2xl:w-[400px]"}>
+          <section aria-label="Current order" className={mobilePane === "cart" ? "flex min-h-0 w-full min-w-0 shrink-0 flex-col overflow-hidden border-l bg-card md:flex md:w-[290px] lg:w-[310px] xl:w-[310px] 2xl:w-[350px]" : "hidden min-h-0 w-full min-w-0 shrink-0 flex-col overflow-hidden border-l bg-card md:flex md:w-[310px] lg:w-[340px] xl:w-[380px] 2xl:w-[400px]"}>
             <div className="flex shrink-0 items-center justify-between border-b px-4 py-3.5">
               <div>
                 <div className="text-base font-bold">Current Order</div>
@@ -221,11 +216,11 @@ function POSScreen() {
                   Cart is empty. Tap an item to add.
                 </div>
               ) : cart.map((item) => (
-                <div key={item.lineId} className="rounded-xl border bg-background p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.025)]">
+                <div key={item.lineId} className="rounded-lg border-b bg-background p-2.5 shadow-[0_1px_2px_rgba(0,0,0,0.025)]">
                   <div className="flex justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="text-base font-bold leading-snug break-words">{item.name}</div>
-                      <div className="mt-1 text-sm text-muted-foreground">{money(item.unitPrice, settings.currency)} · Tax {item.taxRate}%</div>
+                      <div className="text-sm font-bold leading-snug break-words">{item.name}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">{money(item.unitPrice, settings.currency)} · Tax {item.taxRate}%</div>
                     </div>
                     <button onClick={() => removeLine(item.lineId)} className="text-muted-foreground hover:text-destructive">
                       <X className="h-4 w-4" />
@@ -233,9 +228,9 @@ function POSScreen() {
                   </div>
                   <div className="mt-2 flex items-center justify-between">
                     <div className="flex items-center border rounded-md">
-                      <button onClick={() => item.qty > 1 ? updateQty(item.lineId, item.qty - 1) : removeLine(item.lineId)} className="w-10 h-10 flex items-center justify-center hover:bg-accent"><Minus className="h-3 w-3" /></button>
-                      <span className="w-10 text-center text-base font-extrabold tabular-nums">{item.qty}</span>
-                      <button onClick={() => updateQty(item.lineId, item.qty + 1)} className="w-10 h-10 flex items-center justify-center hover:bg-accent"><Plus className="h-3 w-3" /></button>
+                      <button onClick={() => item.qty > 1 ? updateQty(item.lineId, item.qty - 1) : removeLine(item.lineId)} className="w-8 h-8 flex items-center justify-center hover:bg-accent"><Minus className="h-3 w-3" /></button>
+                      <span className="w-8 text-center text-sm font-extrabold tabular-nums">{item.qty}</span>
+                      <button onClick={() => updateQty(item.lineId, item.qty + 1)} className="w-8 h-8 flex items-center justify-center hover:bg-accent"><Plus className="h-3 w-3" /></button>
                     </div>
                     <div className="text-base font-bold tabular-nums">{money(item.unitPrice * item.qty - item.discount, settings.currency)}</div>
                   </div>
@@ -282,6 +277,17 @@ function POSScreen() {
         </div>
       </div>
 
+      <Dialog open={selectedPastOrder !== null} onOpenChange={(open) => { if (!open) setSelectedPastOrder(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Order {selectedPastOrder?.invoiceNo}</DialogTitle></DialogHeader>
+          {selectedPastOrder && <div className="space-y-3 text-sm">
+            <div className="flex justify-between rounded-lg bg-muted p-3"><span className="capitalize">{selectedPastOrder.orderType}{selectedPastOrder.table ? " · " + selectedPastOrder.table : ""}</span><span className="font-semibold capitalize">{selectedPastOrder.kitchenStatus ?? selectedPastOrder.status}</span></div>
+            <div className="max-h-64 space-y-2 overflow-y-auto">{selectedPastOrder.items.map((item) => <div key={item.lineId} className="flex justify-between gap-3 border-b pb-2"><span>{item.qty}× {item.name}</span><span className="shrink-0 font-semibold">{money(item.unitPrice * item.qty - item.discount, settings.currency)}</span></div>)}</div>
+            <div className="flex justify-between border-t pt-3 text-base font-bold"><span>Total paid</span><span>{money(selectedPastOrder.total, settings.currency)}</span></div>
+            <p className="text-xs text-muted-foreground">Completed bills are read-only. Use Orders for refunds and receipts.</p>
+          </div>}
+        </DialogContent>
+      </Dialog>
       <CartReviewDialog open={reviewOpen} onClose={() => setReviewOpen(false)} onCheckout={() => setPayOpen(true)} />
       <PaymentDialog open={payOpen} onClose={() => setPayOpen(false)} onDone={(o) => { setPayOpen(false); setReceipt(o); }} />
       <ReceiptDialog order={receipt} onClose={() => setReceipt(null)} />
