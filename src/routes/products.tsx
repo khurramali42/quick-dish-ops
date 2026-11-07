@@ -85,7 +85,7 @@ function ProductsPage() {
                 </td>
                 <td className="px-4 py-2.5 text-right">
                   <button onClick={() => setEdit(p)} className="p-1.5 rounded hover:bg-accent"><Pencil className="h-3.5 w-3.5" /></button>
-                  <button onClick={() => { if (confirm(`Delete "${p.name}"?`)) { deleteProduct(p.id); toast.success("Deleted"); } }} className="p-1.5 rounded hover:bg-accent text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => { if (confirm(`Delete "${p.name}"?`)) { try { deleteProduct(p.id); toast.success("Deleted"); } catch (error) { toast.error(error instanceof Error ? error.message : "Cannot delete linked record."); } } }} className="p-1.5 rounded hover:bg-accent text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
                 </td>
               </tr>
             ))}
