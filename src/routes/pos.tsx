@@ -16,6 +16,7 @@ import { ReceiptDialog } from "@/components/ReceiptDialog";
 import { ParkedOrdersDialog } from "@/components/ParkedOrdersDialog";
 import { CartReviewDialog } from "@/components/CartReviewDialog";
 import { ProductThumb } from "@/components/ImageUpload";
+import { demoFoodPhoto } from "@/lib/demo-food-photos";
 import type { Order } from "@/lib/types";
 
 export const Route = createFileRoute("/pos")({
@@ -175,7 +176,7 @@ function POSScreen() {
 
           {/* Product grid */}
           <div className="scrollbar-thin min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-[#fff2ee] p-2 dark:bg-background sm:p-3">
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:gap-3.5">
+            <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 lg:gap-3 xl:gap-3.5">
               {filtered.map((p) => <ProductCard key={p.id} product={p} quantity={cart.filter((item) => item.productId === p.id).reduce((n, item) => n + item.qty, 0)} onSelect={() => addToCart(p)} onDecrease={() => { const line = cart.find((item) => item.productId === p.id); if (line) { if (line.qty > 1) updateQty(line.lineId, line.qty - 1); else removeLine(line.lineId); } }} />)}
               {filtered.length === 0 && (
                 <div className="col-span-full text-center text-muted-foreground py-16">No items match.</div>
@@ -214,7 +215,7 @@ function POSScreen() {
               ) : cart.map((item) => (
                 <div key={item.lineId} className="flex items-center gap-2 bg-card px-1 py-2.5">
                   <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
-                    {(() => { const product = products.find((p) => p.id === item.productId); return <ProductThumb src={product?.thumbnailUrl ?? product?.imageUrl} emoji={product?.emoji ?? "🍽️"} />; })()}
+                    {(() => { const product = products.find((p) => p.id === item.productId); return <ProductThumb src={product?.thumbnailUrl ?? product?.imageUrl ?? (product ? demoFoodPhoto(product) : undefined)} emoji={product?.emoji ?? "🍽️"} />; })()}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[11px] font-semibold"><span className="mr-1 font-bold text-brand">{item.qty}×</span>{item.name}</p>
@@ -310,7 +311,7 @@ function ProductCard({ product, quantity, onSelect, onDecrease }: { product: Pro
   return (
     <article className="group min-w-0 overflow-hidden rounded-xl bg-card shadow-[0_2px_10px_rgba(49,28,20,0.045)] ring-1 ring-black/[0.035] transition hover:shadow-md">
       <button type="button" disabled={out} onClick={onSelect} className="relative block aspect-[1.53/1] w-full overflow-hidden bg-muted text-left disabled:opacity-50">
-        <ProductThumb src={product.thumbnailUrl ?? product.imageUrl} emoji={product.emoji ?? "🍽️"} />
+        <ProductThumb src={product.thumbnailUrl ?? product.imageUrl ?? demoFoodPhoto(product)} emoji={product.emoji ?? "🍽️"} />
         {out && <span className="absolute right-2 top-2 rounded-full bg-red-600 px-2 py-1 text-[10px] font-bold text-white">Out</span>}
         {low && !out && <span className="absolute right-2 top-2 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-bold text-amber-900">Low</span>}
       </button>
