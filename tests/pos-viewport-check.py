@@ -13,17 +13,23 @@ def test_pos(browser, width, height, mobile=False):
     page.on("pageerror", lambda exc: errors.append(str(exc)))
     response = page.goto(BASE + "/pos", wait_until="networkidle", timeout=30000)
     assert response and response.status == 200, f"/pos returned {response.status if response else None}"
-    cards = page.locator("button.group")
+    cards = page.locator("article.group")
     cards.first.wait_for(timeout=15000)
     assert cards.count() >= 14, f"Expected menu products; found {cards.count()}"
     for i in range(14):
-        cards.nth(i).click(timeout=10000)
+        cards.nth(i).locator("button").first.click(timeout=10000)
     if mobile:
         page.get_by_role("button", name=re.compile(r"^Order \(")).click()
         page.get_by_role("button", name="Open navigation").click()
         page.get_by_role("button", name="Close navigation").last.click()
+    if width >= 1280:
+        assert page.locator("article.group").count() >= 14
+        assert page.get_by_role("button", name="New Order").is_visible()
+        page.get_by_title("Toggle order list").click()
+        assert page.get_by_role("heading", name="Order List").is_visible()
+        page.get_by_role("button", name="Close order list").click()
     line_list = page.get_by_label("Order line items")
-    charge = page.get_by_role("button", name=re.compile("Charge"))
+    charge = page.get_by_role("button", name="Take Payment")
     assert charge.is_visible(), f"Charge action hidden at {width}x{height}"
     before = charge.bounding_box()
     assert before, "Charge action has no viewport rectangle"
