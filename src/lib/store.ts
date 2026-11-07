@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type {
   CartItem, Category, Customer, Expense, Order, OrderType, PaymentMethod,
-  Product, Purchase, Settings, Supplier, SupplierSettlement, ActivityEvent, ParkedOrder, ParkedOrderStatus, RestaurantTable, TableReservation, ReservationStatus,
+  Product, Purchase, Settings, Supplier, SupplierSettlement, ActivityEvent, RefundRequest, ParkedOrder, ParkedOrderStatus, RestaurantTable, TableReservation, ReservationStatus,
 } from "./types";
 import {
   seedCategories, seedCustomers, seedProducts, seedSettings, seedSuppliers,
@@ -28,6 +28,7 @@ interface State {
   purchases: Purchase[];
   expenses: Expense[];
   activityLog: ActivityEvent[];
+  refundRequests: RefundRequest[];
   settings: Settings;
   restaurantTables: RestaurantTable[];
   reservations: TableReservation[];
@@ -95,6 +96,8 @@ interface State {
   addExpense: (e: Omit<Expense, "id">) => void;
   updateSettings: (s: Partial<Settings>) => void;
   refundOrder: (id: string) => void;
+  requestRefund: (orderId: string, reason: string) => void;
+  resolveRefundRequest: (id: string, approve: boolean) => void;
   setKitchenStatus: (id: string, status: "new" | "preparing" | "ready" | "served") => void;
   toggleKitchenItem: (orderId: string, lineId: string) => void;
   assignKitchenChef: (orderId: string, chef: string) => void;
@@ -127,6 +130,7 @@ export const useStore = create<State>()(
       purchases: [],
       expenses: [],
       activityLog: [],
+      refundRequests: [],
       settings: seedSettings,
       restaurantTables: initialTables,
       reservations: [],
@@ -575,6 +579,30 @@ export const useStore = create<State>()(
           { ...order, kitchenChef: chef.slice(0, 50) } : order,
         ),
       }),
+      requestRefund: (orderId, reason) => {
+        const order = get().orders.find((o) => o.id === orderId);
+        if (!order || order.status !== "completed") throw new Error("Only completed sales may be submitted for refund review.");
+        if (!reason.trim()) throw new Error("A refund reason is required.");
+        if (get().refundRequests.some((request) => request.orderId === orderId && request.status === "pending")) throw new Error("This sale already has a pending refund request.");
+        const eventTime = todayISO();
+        set({
+          refundRequests: [{ id: shortId("RR"), orderId, reason: reason.trim().slice(0, 300), requestedBy: get().currentCashier, status: "pending", createdAt: eventTime }, ...get().refundRequests],
+          activityLog: [{ id: shortId("A"), createdAt: eventTime, operator: get().currentCashier, action: "refund.requested", subjectId: orderId, details: reason.trim().slice(0, 150) }, ...get().activityLog],
+        });
+      },
+      resolveRefundRequest: (id, approve) => {
+        const request = get().refundRequests.find((entry) => entry.id === id);
+        if (!request || request.status !== "pending") throw new Error("Pending refund request not found.");
+        const order = get().orders.find((entry) => entry.id === request.orderId);
+        if (!order || order.status !== "completed") throw new Error("This sale is no longer eligible for a refund.");
+        // Demo approval workflow, NOT server-side authorization.
+        if (approve) get().refundOrder(request.orderId);
+        const now = todayISO();
+        set({
+          refundRequests: get().refundRequests.map((entry) => entry.id === id ? { ...entry, status: approve ? "approved" : "rejected", resolvedBy: get().currentCashier, resolvedAt: now } : entry),
+          activityLog: [{ id: shortId("A"), createdAt: now, operator: get().currentCashier, action: approve ? "refund.approved_demo" : "refund.rejected_demo", subjectId: request.orderId, details: request.reason }, ...get().activityLog],
+        });
+      },
       refundOrder: (id) => {
         const { orders, products, customers } = get();
         const order = orders.find((o) => o.id === id);
