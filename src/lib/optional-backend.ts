@@ -188,6 +188,14 @@ export function watchWorkspace(session: AuthSession, initialRevision: number, no
     if (timer) clearTimeout(timer);
     timer = setTimeout(() => { void sync(); }, 450);
   };
+  // Warn against closing the tab while changes are not yet confirmed by the server.
+  const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+    if (dirty || running) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+  };
+  if (typeof window !== "undefined") window.addEventListener("beforeunload", warnBeforeUnload);
   const unsubscribe = useStore.subscribe(() => {
     if (stopped || locked) return;
     const value = JSON.stringify(snapshot());
@@ -197,5 +205,5 @@ export function watchWorkspace(session: AuthSession, initialRevision: number, no
       queue();
     }
   });
-  return () => { stopped = true; if (timer) clearTimeout(timer); unsubscribe(); };
+  return () => { stopped = true; if (timer) clearTimeout(timer); unsubscribe(); if (typeof window !== "undefined") window.removeEventListener("beforeunload", warnBeforeUnload); };
 }
