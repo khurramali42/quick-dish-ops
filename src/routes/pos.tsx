@@ -175,8 +175,8 @@ function POSScreen() {
           </div>
 
           {/* Product grid */}
-          <div className="scrollbar-thin min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-[#fff2ee] p-2 dark:bg-background sm:p-3">
-            <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 lg:gap-3 xl:gap-3.5">
+          <div className="scrollbar-thin min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain bg-[#fff2ee] p-2 dark:bg-background sm:p-2.5">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,155px),1fr))] gap-2 sm:gap-2.5">
               {filtered.map((p) => <ProductCard key={p.id} product={p} quantity={cart.filter((item) => item.productId === p.id).reduce((n, item) => n + item.qty, 0)} onSelect={() => addToCart(p)} onDecrease={() => { const line = cart.find((item) => item.productId === p.id); if (line) { if (line.qty > 1) updateQty(line.lineId, line.qty - 1); else removeLine(line.lineId); } }} />)}
               {filtered.length === 0 && (
                 <div className="col-span-full text-center text-muted-foreground py-16">No items match.</div>
@@ -187,7 +187,7 @@ function POSScreen() {
 
           </div>
           {/* Current order with pinned totals. */}
-          <section aria-label="Current order" className={mobilePane === "cart" ? "flex min-h-0 w-full min-w-0 shrink-0 flex-col overflow-hidden border-l bg-card md:flex md:w-[290px] lg:w-[310px] xl:w-[320px] 2xl:w-[350px]" : "hidden min-h-0 w-full min-w-0 shrink-0 flex-col overflow-hidden border-l bg-card md:flex md:w-[290px] lg:w-[300px] xl:w-[305px] 2xl:w-[350px]"}>
+          <section aria-label="Current order" className={mobilePane === "cart" ? "flex min-h-0 w-full min-w-0 shrink-0 flex-col overflow-hidden border-l bg-card md:flex md:w-[270px] lg:w-[280px] xl:w-[290px] 2xl:w-[310px]" : "hidden min-h-0 w-full min-w-0 shrink-0 flex-col overflow-hidden border-l bg-card md:flex md:w-[270px] lg:w-[280px] xl:w-[290px] 2xl:w-[310px]"}>
             <div className="flex shrink-0 items-center justify-between border-b bg-card px-3 py-3">
               <div>
                 <div className="text-[10px] text-muted-foreground">Order No.</div><div className="text-sm font-extrabold">Current Order</div>
@@ -309,18 +309,18 @@ function ProductCard({ product, quantity, onSelect, onDecrease }: { product: Pro
   const low = product.trackStock && product.stock <= 5;
   const out = product.trackStock && product.stock <= 0;
   return (
-    <article className="group min-w-0 overflow-hidden rounded-xl bg-card shadow-[0_2px_10px_rgba(49,28,20,0.045)] ring-1 ring-black/[0.035] transition hover:shadow-md">
-      <button type="button" disabled={out} onClick={onSelect} className="relative block aspect-[1.53/1] w-full overflow-hidden bg-muted text-left disabled:opacity-50">
+    <article className="group min-w-0 overflow-hidden rounded-lg bg-card shadow-[0_2px_10px_rgba(49,28,20,0.045)] ring-1 ring-black/[0.035] transition hover:shadow-md">
+      <button type="button" disabled={out} onClick={onSelect} className="relative block aspect-[1.82/1] w-full overflow-hidden bg-muted text-left disabled:opacity-50">
         <ProductThumb src={product.thumbnailUrl ?? product.imageUrl ?? demoFoodPhoto(product)} emoji={product.emoji ?? "🍽️"} />
         {out && <span className="absolute right-2 top-2 rounded-full bg-red-600 px-2 py-1 text-[10px] font-bold text-white">Out</span>}
         {low && !out && <span className="absolute right-2 top-2 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-bold text-amber-900">Low</span>}
       </button>
-      <div className="px-2.5 pb-2.5 pt-2">
-        <button type="button" onClick={onSelect} disabled={out} className="line-clamp-1 block w-full text-left text-[11px] font-extrabold hover:text-brand">{product.name}</button>
-        <p className="mt-1 line-clamp-2 min-h-[27px] text-[10px] leading-[1.35] text-muted-foreground">{product.description || "Freshly prepared to order."}</p>
-        <div className="mt-2 flex items-center justify-between gap-1.5">
-          <span className="whitespace-nowrap text-[12px] font-extrabold tabular-nums">{money(product.price, settings.currency)}</span>
-          {quantity > 0 ? <div className="flex items-center gap-1"><button type="button" onClick={onDecrease} aria-label={`Remove one ${product.name}`} className="flex h-6 w-6 items-center justify-center rounded-full border bg-card hover:bg-muted"><Minus className="h-3 w-3" /></button><span className="min-w-3 text-center text-[10px] font-bold tabular-nums">{quantity}</span><button type="button" disabled={out} onClick={onSelect} aria-label={`Add one ${product.name}`} className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-950 text-white disabled:opacity-40"><Plus className="h-3 w-3" /></button></div> : <button type="button" onClick={onSelect} disabled={out} className="flex h-7 items-center gap-1 rounded-full bg-brand-gradient px-3 text-[10px] font-bold text-brand-foreground disabled:opacity-40"><Plus className="h-3 w-3" /> Add</button>}
+      <div className="px-2 pb-2 pt-1.5">
+        <button type="button" onClick={onSelect} disabled={out} className="line-clamp-1 block w-full text-left text-[10.5px] font-extrabold hover:text-brand">{product.name}</button>
+        <p className="mt-0.5 line-clamp-1 min-h-[14px] text-[9px] leading-[1.3] text-muted-foreground">{product.description || "Freshly prepared to order."}</p>
+        <div className="mt-1.5 flex items-center justify-between gap-1">
+          <span className="whitespace-nowrap text-[11px] font-extrabold tabular-nums">{money(product.price, settings.currency)}</span>
+          {quantity > 0 ? <div className="flex items-center gap-1"><button type="button" onClick={onDecrease} aria-label={`Remove one ${product.name}`} className="flex h-6 w-6 items-center justify-center rounded-full border bg-card hover:bg-muted"><Minus className="h-3 w-3" /></button><span className="min-w-3 text-center text-[10px] font-bold tabular-nums">{quantity}</span><button type="button" disabled={out} onClick={onSelect} aria-label={`Add one ${product.name}`} className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-950 text-white disabled:opacity-40"><Plus className="h-3 w-3" /></button></div> : <button type="button" onClick={onSelect} disabled={out} className="flex h-6 items-center gap-1 rounded-full bg-brand-gradient px-2.5 text-[9px] font-bold text-brand-foreground disabled:opacity-40"><Plus className="h-3 w-3" /> Add</button>}
         </div>
       </div>
     </article>
