@@ -32,6 +32,25 @@ describe("restaurant kitchen and receiving workflow", () => {
     expect(useStore.getState().orders[0].kitchenStatus).toBe("served");
   });
 
+  test("chef station and per-item preparation checklist persist correctly", () => {
+    const order = useStore.getState().checkout(700, "cash");
+    useStore.getState().assignKitchenChef(order.id, "Head chef");
+    useStore.getState().toggleKitchenItem(order.id, item.lineId);
+    expect(useStore.getState().orders[0].kitchenDoneLineIds).toBeUndefined();
+    useStore.getState().setKitchenStatus(order.id, "preparing");
+    useStore.getState().assignKitchenChef(order.id, "Head chef");
+    useStore.getState().toggleKitchenItem(order.id, item.lineId);
+    expect(useStore.getState().orders[0].kitchenChef).toBe("Head chef");
+    expect(useStore.getState().orders[0].kitchenDoneLineIds).toEqual([item.lineId]);
+    useStore.getState().toggleKitchenItem(order.id, item.lineId);
+    expect(useStore.getState().orders[0].kitchenDoneLineIds).toEqual([]);
+    useStore.getState().toggleKitchenItem(order.id, "invalid-line");
+    expect(useStore.getState().orders[0].kitchenDoneLineIds).toEqual([]);
+    useStore.getState().setKitchenStatus(order.id, "served");
+    useStore.getState().toggleKitchenItem(order.id, item.lineId);
+    expect(useStore.getState().orders[0].kitchenDoneLineIds).toEqual([]);
+  });
+
   test("refunded sales cannot be moved through kitchen workflow", () => {
     const order = useStore.getState().checkout(700, "cash");
     useStore.getState().refundOrder(order.id);
