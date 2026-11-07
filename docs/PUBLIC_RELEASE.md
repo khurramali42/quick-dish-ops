@@ -9,6 +9,7 @@ payment records are simulated locally; **do not enter real customer or card data
 
 The latest demo now includes:
 - A supplier purchase-payable ledger with recorded partial settlements.
+- A browser-only refund request/review demonstration (no real manager authentication).
 - Optional unpaid-order kitchen dispatch and persistence of preparation progress through local checkout.
 - Ingredient recipes which can deduct tracked ingredient units on checkout; sales link to seated reservation records when available.
 - Inventory waste entries with reason and local activity history.
@@ -64,6 +65,7 @@ or multi-device synchronization.
 
 - Staff names are labels, not authenticated identities; local activity events
   can be modified by browser users and are not a secure audit trail.
+- No real manager approval enforcement or tamper-proof audit trail. Local demo review controls are accessible to any browser user.
 - No real multi-user synchronization, payment gateway, restaurant-grade
   accounting ledger, per-table settlement or printer certification.
 - Inventory recipes work with quantities as configured and can use fractional
