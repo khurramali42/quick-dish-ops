@@ -136,6 +136,7 @@ describe("restaurant kitchen and receiving workflow", () => {
     expect(recorded).toBe(seedProducts[0].cost);
     useStore.getState().upsertProduct({ ...useStore.getState().products[0], cost: 999 });
     expect(useStore.getState().orders[0].items[0].unitCostSnapshot).toBe(recorded);
+    expect(useStore.getState().orders[0].items[0].categoryIdSnapshot).toBe(seedProducts[0].categoryId);
   });
 
   test("invalid kitchen transitions do not bypass preparation checklist", () => {
