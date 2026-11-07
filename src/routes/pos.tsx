@@ -212,41 +212,16 @@ function POSScreen() {
                   Cart is empty. Tap an item to add.
                 </div>
               ) : cart.map((item) => (
-                <div key={item.lineId} className="bg-card px-2 py-3">
-                  <div className="flex items-start gap-2.5">
-                    <div className="h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-muted">
-                      {(() => { const product = products.find((p) => p.id === item.productId); return <ProductThumb src={product?.thumbnailUrl ?? product?.imageUrl} emoji={product?.emoji ?? "🍽️"} />; })()}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[12px] font-bold leading-snug break-words">{item.name}</div>
-                      <div className="mt-0.5 text-[11px] text-muted-foreground">{money(item.unitPrice, settings.currency)} · Tax {item.taxRate}%</div>
-                      {item.note && <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">{item.note}</p>}
-                    </div>
-                    <div className="flex shrink-0 flex-col items-end gap-1">
-                      <button onClick={() => setReviewOpen(true)} className="text-[10px] font-semibold text-brand hover:underline">Edit</button>
-                      <button onClick={() => removeLine(item.lineId)} aria-label={`Remove ${item.name}`} className="text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button>
-                    </div>
+                <div key={item.lineId} className="flex items-center gap-2 bg-card px-1 py-2.5">
+                  <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
+                    {(() => { const product = products.find((p) => p.id === item.productId); return <ProductThumb src={product?.thumbnailUrl ?? product?.imageUrl} emoji={product?.emoji ?? "🍽️"} />; })()}
                   </div>
-                  <div className="mt-2 flex items-center justify-between">
-                    <div className="flex items-center border rounded-md">
-                      <button onClick={() => item.qty > 1 ? updateQty(item.lineId, item.qty - 1) : removeLine(item.lineId)} className="w-8 h-8 flex items-center justify-center hover:bg-accent"><Minus className="h-3 w-3" /></button>
-                      <span className="w-8 text-center text-sm font-extrabold tabular-nums">{item.qty}</span>
-                      <button onClick={() => updateQty(item.lineId, item.qty + 1)} className="w-8 h-8 flex items-center justify-center hover:bg-accent"><Plus className="h-3 w-3" /></button>
-                    </div>
-                    <div className="text-base font-bold tabular-nums">{money(item.unitPrice * item.qty - item.discount, settings.currency)}</div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[11px] font-semibold"><span className="mr-1 font-bold text-brand">{item.qty}×</span>{item.name}</p>
+                    <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{item.note || item.modifiers?.map((mod) => mod.name).join(", ") || "No extras"}</p>
                   </div>
-                  <div className="mt-2 flex gap-2">
-                    <div className="relative flex-1">
-                      <Percent className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                      <input type="number" value={item.discount || ""} onChange={(e) => updateItemDiscount(item.lineId, +e.target.value)} placeholder="Discount" className="h-10 w-full min-w-0 rounded-md border bg-background pl-7 pr-3 text-sm font-medium tabular-nums" />
-                    </div>
-                    <div className="relative flex-1">
-                      <StickyNote className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                      <input value={item.note ?? ""} onChange={(e) => updateNote(item.lineId, e.target.value)} placeholder="Note" className="w-full h-10 pl-7 pr-2 rounded-md border bg-background text-sm" />
-                    </div>
-                  </div>
-                </div>
-              ))}
+                  <div className="flex shrink-0 flex-col items-end gap-1"><button onClick={() => setReviewOpen(true)} className="text-[10px] font-semibold text-brand hover:underline">✎ Edit</button><span className="text-[11px] font-bold tabular-nums">{money(item.unitPrice * item.qty - item.discount, settings.currency)}</span></div>
+                </div>              ))}
             </div>
 
             {/* Totals */}
@@ -263,21 +238,30 @@ function POSScreen() {
                 <span>Total</span>
                 <span>{money(totals.total, settings.currency)}</span>
               </div>
-              <button type="button" disabled={!cart.length} onClick={() => setParkStatus("pending-payment")} className="mt-2 flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-orange-300 bg-orange-50 text-sm font-bold text-orange-800 hover:bg-orange-100 disabled:opacity-40 dark:bg-accent dark:text-accent-foreground">
-                <Pause className="h-4 w-4" /> Save as Payment Pending
-              </button>
-              <button
-                onClick={() => cart.length && setPayOpen(true)}
-                disabled={!cart.length}
-                className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-full bg-slate-950 font-semibold text-brand-foreground shadow-sm transition-[filter,transform] hover:brightness-105 active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <CreditCard className="h-4 w-4" /> Charge · {money(totals.total, settings.currency)}
-              </button>
+              <div className="mt-2 flex items-center gap-2">
+                <button type="button" onClick={() => setBillPrintOpen(true)} disabled={!cart.length} className="flex h-10 min-w-0 flex-1 items-center justify-center gap-1 rounded-full bg-[#efefef] px-2 text-[11px] font-bold text-slate-800 hover:bg-[#e1e1e1] disabled:opacity-40"><Printer className="h-3.5 w-3.5" /> Print Bill</button>
+                <button type="button" onClick={() => cart.length && setPayOpen(true)} disabled={!cart.length} className="flex h-10 min-w-0 flex-1 items-center justify-center gap-1 rounded-full bg-black px-2 text-[11px] font-bold text-white hover:bg-slate-800 disabled:opacity-40"><CreditCard className="h-3.5 w-3.5" /> Take Payment</button>
+              </div>
+              <button type="button" onClick={() => setParkStatus("pending-payment")} disabled={!cart.length} className="w-full py-1 text-center text-[10px] font-semibold text-brand hover:underline disabled:opacity-40">Save as Payment Pending</button>
             </div>
           </section>
         </div>
       </div>
 
+      <Dialog open={billPrintOpen} onOpenChange={setBillPrintOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Print Bill Preview</DialogTitle></DialogHeader>
+          <div className="draft-print-sheet space-y-2 bg-white p-5 text-sm text-black">
+            <h2 className="text-center text-base font-extrabold">{settings.businessName}</h2>
+            <p className="text-center text-xs">{settings.branchName} · Draft bill (unpaid)</p>
+            <p className="border-b border-dashed pb-2 text-xs">{orderType}{table ? " · Table " + table : ""}</p>
+            {cart.map((item) => <div key={item.lineId} className="flex justify-between gap-3 text-xs"><span>{item.qty} × {item.name}</span><span>{money(item.qty * item.unitPrice - item.discount, settings.currency)}</span></div>)}
+            <div className="flex justify-between border-t border-dashed pt-2 text-sm font-bold"><span>Total</span><span>{money(totals.total, settings.currency)}</span></div>
+            <p className="text-center text-xs">Payment not yet received</p>
+          </div>
+          <button type="button" onClick={() => window.print()} className="flex h-10 items-center justify-center gap-2 rounded-lg bg-slate-950 text-sm font-bold text-white"><Printer className="h-4 w-4" /> Print Bill</button>
+        </DialogContent>
+      </Dialog>
       <Dialog open={selectedPastOrder !== null} onOpenChange={(open) => { if (!open) setSelectedPastOrder(null); }}>
         <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle>Order {selectedPastOrder?.invoiceNo}</DialogTitle></DialogHeader>
@@ -315,43 +299,30 @@ function POSScreen() {
   );
 }
 
-function CatBtn({ active, onClick, icon, label }: any) {
-  return (
-    <button onClick={onClick} className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-2 text-[11px] font-semibold transition-all focus-visible:outline-2 focus-visible:outline-ring ${active ? "border-brand bg-orange-50 text-brand shadow-sm dark:bg-accent" : "border-border/70 bg-card text-foreground hover:border-brand/40 hover:bg-accent"}`}>
-      <span className="text-sm leading-none">{icon}</span>
-      <span className="whitespace-nowrap leading-tight">{label}</span>
-    </button>
-  );
+function CatBtn({ active, onClick, label }: { active: boolean; onClick: () => void; icon?: string; label: string }) {
+  return <button type="button" onClick={onClick} aria-pressed={active} className={`shrink-0 rounded-full border px-3 py-1.5 text-[10px] font-semibold leading-none transition focus-visible:outline-2 focus-visible:outline-ring ${active ? "border-brand bg-orange-50 text-brand dark:bg-accent" : "border-border bg-card text-foreground hover:border-brand/40"}`}>{label}</button>;
 }
 
-function ProductCard({ product, onSelect }: { product: Product; onSelect: () => void }) {
+function ProductCard({ product, quantity, onSelect, onDecrease }: { product: Product; quantity: number; onSelect: () => void; onDecrease: () => void }) {
   const { settings } = useStore();
   const low = product.trackStock && product.stock <= 5;
   const out = product.trackStock && product.stock <= 0;
   return (
-    <button
-      onClick={onSelect}
-      disabled={out}
-      className="group overflow-hidden rounded-xl border bg-card text-left shadow-[0_3px_14px_rgba(57,34,27,0.05)] transition-[border-color,box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:border-brand/40 hover:shadow-md active:translate-y-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50"
-    >
-      <div className={`${product.isDeal ? "aspect-[4/3]" : "aspect-[4/3]"} bg-gradient-to-br from-accent to-secondary relative overflow-hidden`}>
+    <article className="group min-w-0 overflow-hidden rounded-xl bg-card shadow-[0_2px_10px_rgba(49,28,20,0.045)] ring-1 ring-black/[0.035] transition hover:shadow-md">
+      <button type="button" disabled={out} onClick={onSelect} className="relative block aspect-[1.53/1] w-full overflow-hidden bg-muted text-left disabled:opacity-50">
         <ProductThumb src={product.thumbnailUrl ?? product.imageUrl} emoji={product.emoji ?? "🍽️"} />
-        {product.featured && <span className="absolute top-2 left-2 bg-brand-gradient text-brand-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full shadow">★ Popular</span>}
-        {out ? (
-          <span className="absolute top-2 right-2 bg-destructive text-destructive-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full">Out</span>
-        ) : low ? (
-          <span className="absolute top-2 right-2 bg-warning text-warning-foreground text-[10px] font-semibold px-2 py-0.5 rounded-full">Low · {product.stock}</span>
-        ) : null}
-      </div>
-      <div className="p-2.5">
-        <div className="line-clamp-2 min-h-[2.4rem] text-[13px] font-extrabold leading-tight">{product.name}</div>
-        {product.description && <div className="mt-1 line-clamp-2 min-h-[1.9rem] text-[10px] leading-snug text-muted-foreground">{product.description}</div>}
-        <div className="mt-1.5 flex items-center justify-between gap-2">
-          <span className="font-extrabold text-sm">{money(product.price, settings.currency)}</span>
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-gradient text-brand-foreground shadow-sm transition group-hover:brightness-110"><Plus className="h-3.5 w-3.5" /></span>
+        {out && <span className="absolute right-2 top-2 rounded-full bg-red-600 px-2 py-1 text-[10px] font-bold text-white">Out</span>}
+        {low && !out && <span className="absolute right-2 top-2 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-bold text-amber-900">Low</span>}
+      </button>
+      <div className="px-2.5 pb-2.5 pt-2">
+        <button type="button" onClick={onSelect} disabled={out} className="line-clamp-1 block w-full text-left text-[11px] font-extrabold hover:text-brand">{product.name}</button>
+        <p className="mt-1 line-clamp-2 min-h-[27px] text-[10px] leading-[1.35] text-muted-foreground">{product.description || "Freshly prepared to order."}</p>
+        <div className="mt-2 flex items-center justify-between gap-1.5">
+          <span className="whitespace-nowrap text-[12px] font-extrabold tabular-nums">{money(product.price, settings.currency)}</span>
+          {quantity > 0 ? <div className="flex items-center gap-1"><button type="button" onClick={onDecrease} aria-label={`Remove one ${product.name}`} className="flex h-6 w-6 items-center justify-center rounded-full border bg-card hover:bg-muted"><Minus className="h-3 w-3" /></button><span className="min-w-3 text-center text-[10px] font-bold tabular-nums">{quantity}</span><button type="button" disabled={out} onClick={onSelect} aria-label={`Add one ${product.name}`} className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-950 text-white disabled:opacity-40"><Plus className="h-3 w-3" /></button></div> : <button type="button" onClick={onSelect} disabled={out} className="flex h-7 items-center gap-1 rounded-full bg-brand-gradient px-3 text-[10px] font-bold text-brand-foreground disabled:opacity-40"><Plus className="h-3 w-3" /> Add</button>}
         </div>
       </div>
-    </button>
+    </article>
   );
 }
 
