@@ -384,7 +384,14 @@ export const useStore = create<State>()(
           customerName: customer?.name,
           table,
           orderType,
-          items: cart.map((item) => ({ ...item, modifiers: item.modifiers.map((m) => ({ ...m })), unitCostSnapshot: products.find((p) => p.id === item.productId)?.cost ?? item.unitCostSnapshot ?? 0, categoryIdSnapshot: products.find((p) => p.id === item.productId)?.categoryId ?? item.categoryIdSnapshot })),
+          reservationId: orderType === "dine-in" ? get().reservations.find((reservation) =>
+            reservation.status === "seated" && get().restaurantTables.some((tableDef) => tableDef.id === reservation.tableId && tableDef.label === table))?.id : undefined,
+          items: cart.map((item) => ({ ...item, modifiers: item.modifiers.map((m) => ({ ...m })), unitCostSnapshot: (() => {
+            const product = products.find((p) => p.id === item.productId);
+            return product?.recipe?.length ? product.recipe.reduce((sum, ingredient) =>
+              sum + (products.find((p) => p.id === ingredient.ingredientProductId)?.cost ?? 0) * ingredient.qty, 0)
+              : product?.cost ?? item.unitCostSnapshot ?? 0;
+          })(), categoryIdSnapshot: products.find((p) => p.id === item.productId)?.categoryId ?? item.categoryIdSnapshot })),
           subtotal: t.subtotal,
           itemDiscount: t.itemDiscount,
           billDiscount: t.appliedBillDiscount,
@@ -512,8 +519,9 @@ export const useStore = create<State>()(
       setRecipe: (productId, lines) => {
         if (!get().products.some((p) => p.id === productId)) throw new Error("Recipe product not found.");
         if (!Array.isArray(lines) || lines.some((line) => line.ingredientProductId === productId ||
-          !get().products.some((p) => p.id === line.ingredientProductId && p.trackStock) ||
+          !get().products.some((p) => p.id === line.ingredientProductId && p.trackStock && !p.recipe?.length) ||
           !Number.isFinite(line.qty) || line.qty <= 0)) throw new Error("Recipe ingredients and positive quantities must refer to tracked stock items.");
+        if (lines.length && get().products.some((p) => p.id !== productId && p.recipe?.some((entry) => entry.ingredientProductId === productId))) throw new Error("A recipe ingredient cannot itself have another recipe.");
         set({
           products: get().products.map((p) => p.id === productId ? { ...p, recipe: lines } : p),
           activityLog: [{ id: shortId("A"), createdAt: todayISO(), operator: get().currentCashier, action: "recipe.updated", subjectId: productId, details: `${lines.length} ingredient lines` }, ...get().activityLog],
