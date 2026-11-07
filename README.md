@@ -20,11 +20,11 @@ These are authentic browser screenshots from the application, using fictional de
 ## What you can explore
 
 - **POS:** menu and category browsing, item search, cart, discounts, tax, checkout simulation and receipt preview/printing with 58mm, 80mm or A4 options
-- **Orders and kitchen:** order history, simulated refunds and a local kitchen board with New → Preparing → Ready → Served
-- **Products and inventory:** categories, images, product records, stock quantities and stock adjustments
-- **Purchasing:** supplier records, incoming stock and expense entries
+- **Orders and kitchen:** order history, demo-only refund review and a local kitchen board with New → Preparing → Ready → Served; unpaid cart tickets can be sent to the local kitchen queue before checkout
+- **Products and inventory:** categories, images, stock, ingredient recipes and reason-coded waste adjustments
+- **Purchasing:** supplier records, incoming stock, partial supplier invoice settlements and expense entries
 - **Customers and reports:** example customer records, basic sales summaries and financial snapshots
-- **Local data:** JSON export and guarded restore of browser data through Settings
+- **Local data:** JSON export, guarded restore and a browser-editable demo activity history through Settings
 
 Some interfaces represent **simulated processes**, not integrations with payment terminals, accounting software, card networks or external kitchen displays.
 
@@ -67,6 +67,10 @@ To run the built app locally, use `bun run start`. Browser-only functional tests
 ## Cross-module audit
 
 See [cross-module integrity and settings audit (2026-11-07)](docs/cross-module-audit-2026-11-07.md) for current relationships, tested fixes, and the remaining production gaps.
+
+## Public repository release
+
+See [public release guide](docs/PUBLIC_RELEASE.md) for usable demo features, license/screenshot checks, and optional secure database architecture. **This project is public-source software, not a hosted multi-tenant restaurant service.**
 
 ## Before using this for a real restaurant
 

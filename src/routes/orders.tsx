@@ -14,7 +14,7 @@ export const Route = createFileRoute("/orders")({
 });
 
 function OrdersPage() {
-  const { orders, settings, refundOrder } = useStore();
+  const { orders, settings, refundRequests, requestRefund } = useStore();
   const [receipt, setReceipt] = useState<Order | null>(null);
   const [status, setStatus] = useState<"all" | "completed" | "refunded">("all");
   const shown = orders.filter((o) => status === "all" || o.status === status);
@@ -59,7 +59,7 @@ function OrdersPage() {
                 <td className="px-4 py-2.5 text-right">
                   <button onClick={() => setReceipt(o)} className="p-1.5 rounded hover:bg-accent" title="Print"><Printer className="h-3.5 w-3.5" /></button>
                   {o.status !== "refunded" && (
-                    <button onClick={() => { if (confirm("Refund this sale? It reverses customer totals but does not automatically restock prepared food. Adjust physical inventory manually if goods were actually returned.")) { refundOrder(o.id); toast.success("Refunded"); } }} className="p-1.5 rounded hover:bg-accent text-destructive" title="Refund"><Undo2 className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => { const reason = prompt("Reason for refund review:"); if (reason === null) return; try { requestRefund(o.id, reason); toast.success("Refund request queued for demo manager review"); } catch (error) { toast.error(error instanceof Error ? error.message : "Unable to request refund"); } }} className="p-1.5 rounded hover:bg-accent text-destructive" title="Request refund review"><Undo2 className="h-3.5 w-3.5" /></button>
                   )}
                 </td>
               </tr>
@@ -69,6 +69,7 @@ function OrdersPage() {
         </table></div>
       </div>
 
+      <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"><b>Refund review is simulated.</b> Cashiers can request a refund; demo reviewers can approve it from Settings. Actual manager permissions and approval security require a connected backend. Pending requests: {refundRequests.filter((request) => request.status === "pending").length}.</div>
       <ReceiptDialog order={receipt} onClose={() => setReceipt(null)} />
     </AppLayout>
   );

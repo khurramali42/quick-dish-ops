@@ -36,7 +36,7 @@ function POSScreen() {
     products, categories, activeCategory, setCategory, search, setSearch,
     cart, addToCart, updateQty, removeLine, clearCart, updateItemDiscount, updateItemDiscountPercent, updateNote,
     orderType, setOrderType, table, setTable, customerId, setCustomer, customers,
-    billDiscount, setBillDiscount, heldOrders, holdOrder, recallOrder,
+    billDiscount, setBillDiscount, heldOrders, holdOrder, recallOrder, dispatchCartToKitchen, activeKitchenTicket,
     settings, checkout, currentCashier, orders, restaurantTables, reservations,
   } = useStore();
   const totals = useCartTotals();
@@ -259,6 +259,7 @@ function POSScreen() {
                 <button type="button" onClick={() => setBillPrintOpen(true)} disabled={!cart.length} className="flex h-10 min-w-0 flex-1 items-center justify-center gap-1 rounded-full bg-[#efefef] px-2 text-[11px] font-bold text-slate-800 hover:bg-[#e1e1e1] disabled:opacity-40"><Printer className="h-3.5 w-3.5" /> Print Bill</button>
                 <button type="button" onClick={() => cart.length && setPayOpen(true)} disabled={!cart.length} className="flex h-10 min-w-0 flex-1 items-center justify-center gap-1 rounded-full bg-black px-2 text-[11px] font-bold text-white hover:bg-slate-800 disabled:opacity-40"><CreditCard className="h-3.5 w-3.5" /> Take Payment</button>
               </div>
+              <button type="button" disabled={!cart.length || !!activeKitchenTicket} onClick={() => { try { dispatchCartToKitchen(); toast.success("Unpaid order sent to local kitchen queue"); setMobilePane("menu"); } catch (error) { toast.error(error instanceof Error ? error.message : "Unable to dispatch order"); } }} className="mt-1 flex w-full items-center justify-center gap-1 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-[11px] font-bold text-orange-700 disabled:opacity-40 dark:bg-accent"><Utensils className="h-3.5 w-3.5" /> {activeKitchenTicket ? "Already sent to kitchen" : "Send to Kitchen (unpaid)"}</button>
               <button type="button" onClick={() => setParkStatus("pending-payment")} disabled={!cart.length} className="w-full py-1 text-center text-[10px] font-semibold text-brand hover:underline disabled:opacity-40">Save as Payment Pending</button>
             </div>
           </section>
@@ -382,7 +383,7 @@ function PaymentDialog({ open, onClose, onDone }: { open: boolean; onClose: () =
         <DialogHeader>
           <div className="shrink-0 border-b bg-card px-5 py-4 pr-12 sm:px-6">
             <DialogTitle className="text-lg font-extrabold tracking-tight">Payment Checkout</DialogTitle>
-            <p className="mt-0.5 text-xs text-muted-foreground">Confirm order details, select a payment method, then complete the sale.</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Demo checkout only. No bank, wallet or card payment is charged. Choose a simulated method to record the local sale.</p>
           </div>
         </DialogHeader>
         <div className="grid min-h-0 flex-1 overflow-y-auto bg-[#f7f7f8] md:grid-cols-[0.95fr_1.05fr] md:overflow-hidden dark:bg-background">

@@ -67,6 +67,7 @@ export interface Product {
   stock: number; // simple product stock (units)
   trackStock: boolean;
   prepTime: number; // minutes
+  recipe?: { ingredientProductId: string; qty: number }[]; // quantity per sold unit; use ingredient stock rather than finished-product stock
   variants?: ProductVariant[];
   modifiers?: Modifier[];
   description?: string;
@@ -103,6 +104,10 @@ export interface ParkedOrder {
   status?: ParkedOrderStatus; // Legacy held orders have no status.
   reason?: string;
   cashier?: string;
+  kitchenStatus?: "new" | "preparing" | "ready" | "served";
+  kitchenDoneLineIds?: string[];
+  kitchenChef?: string;
+  kitchenDispatchedAt?: string;
 }
 
 export interface Customer {
@@ -134,6 +139,8 @@ export interface Order {
   customerName?: string;
   table?: string;
   orderType: OrderType;
+  reservationId?: string; // seated reservation linked at checkout
+  kitchenTicketId?: string; // original unpaid kitchen ticket ID, if dispatched before checkout
   items: CartItem[];
   subtotal: number;
   itemDiscount: number;
@@ -152,6 +159,36 @@ export interface Order {
   note?: string;
 }
 
+export interface SupplierSettlement {
+  id: string;
+  purchaseId: string;
+  supplierId: string;
+  amount: number;
+  method: PaymentMethod;
+  date: string;
+  note?: string;
+}
+
+export interface RefundRequest {
+  id: string;
+  orderId: string;
+  reason: string;
+  requestedBy: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+  resolvedBy?: string;
+  resolvedAt?: string;
+}
+
+export interface ActivityEvent {
+  id: string;
+  createdAt: string;
+  action: string;
+  subjectId: string;
+  operator: string;
+  details: string;
+}
+
 export interface Purchase {
   id: string;
   invoiceNo: string;
@@ -161,6 +198,7 @@ export interface Purchase {
   items: { productId: string; name: string; qty: number; cost: number }[];
   total: number;
   paid: number;
+  settlements?: SupplierSettlement[];
 }
 
 export interface Expense {

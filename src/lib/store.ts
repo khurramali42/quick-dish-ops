@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type {
   CartItem, Category, Customer, Expense, Order, OrderType, PaymentMethod,
-  Product, Purchase, Settings, Supplier, ParkedOrder, ParkedOrderStatus, RestaurantTable, TableReservation, ReservationStatus,
+  Product, Purchase, Settings, Supplier, SupplierSettlement, ActivityEvent, RefundRequest, ParkedOrder, ParkedOrderStatus, RestaurantTable, TableReservation, ReservationStatus,
 } from "./types";
 import {
   seedCategories, seedCustomers, seedProducts, seedSettings, seedSuppliers,
@@ -27,6 +27,8 @@ interface State {
   orders: Order[];
   purchases: Purchase[];
   expenses: Expense[];
+  activityLog: ActivityEvent[];
+  refundRequests: RefundRequest[];
   settings: Settings;
   restaurantTables: RestaurantTable[];
   reservations: TableReservation[];
@@ -35,6 +37,7 @@ interface State {
   cart: CartItem[];
   heldOrders: ParkedOrder[];
   parkedHistory: ParkedOrder[];
+  activeKitchenTicket?: Pick<ParkedOrder, "id" | "kitchenStatus" | "kitchenDoneLineIds" | "kitchenChef" | "kitchenDispatchedAt">;
   activeCategory: string | "all";
   search: string;
   orderType: OrderType;
@@ -69,6 +72,7 @@ interface State {
   replaceCart: (items: CartItem[]) => void;
 
   holdOrder: (status?: "held" | "pending-payment") => void;
+  dispatchCartToKitchen: () => void;
   recallOrder: (id: string) => void;
   setParkedStatus: (id: string, status: ParkedOrderStatus, reason?: string) => void;
   removeParkedHistory: (id: string) => void;
@@ -86,9 +90,14 @@ interface State {
   upsertSupplier: (s: Supplier) => void;
   deleteSupplier: (id: string) => void;
   addPurchase: (p: Omit<Purchase, "id" | "invoiceNo">) => void;
+  settlePurchase: (purchaseId: string, amount: number, method: PaymentMethod, note?: string) => void;
+  recordWaste: (productId: string, qty: number, reason: string) => void;
+  setRecipe: (productId: string, lines: NonNullable<Product["recipe"]>) => void;
   addExpense: (e: Omit<Expense, "id">) => void;
   updateSettings: (s: Partial<Settings>) => void;
   refundOrder: (id: string) => void;
+  requestRefund: (orderId: string, reason: string) => void;
+  resolveRefundRequest: (id: string, approve: boolean) => void;
   setKitchenStatus: (id: string, status: "new" | "preparing" | "ready" | "served") => void;
   toggleKitchenItem: (orderId: string, lineId: string) => void;
   assignKitchenChef: (orderId: string, chef: string) => void;
@@ -120,6 +129,8 @@ export const useStore = create<State>()(
       orders: [],
       purchases: [],
       expenses: [],
+      activityLog: [],
+      refundRequests: [],
       settings: seedSettings,
       restaurantTables: initialTables,
       reservations: [],
@@ -127,6 +138,7 @@ export const useStore = create<State>()(
       cart: [],
       heldOrders: [],
       parkedHistory: [],
+      activeKitchenTicket: undefined,
       activeCategory: "all",
       search: "",
       orderType: "dine-in",
@@ -252,7 +264,7 @@ export const useStore = create<State>()(
         cart: get().cart.map((c) => c.lineId === lineId ? { ...c, note } : c),
       }),
       removeLine: (lineId) => set({ cart: get().cart.filter((c) => c.lineId !== lineId) }),
-      clearCart: () => set({ cart: [], billDiscount: 0, table: undefined }),
+      clearCart: () => set({ cart: [], billDiscount: 0, table: undefined, activeKitchenTicket: undefined }),
       replaceCart: (items) => {
         const products = get().products;
         for (const item of items) {
@@ -269,17 +281,29 @@ export const useStore = create<State>()(
       },
 
       holdOrder: (status = "held") => {
-        const { cart, orderType, table, customerId, billDiscount, currentCashier, heldOrders } = get();
+        const { cart, orderType, table, customerId, billDiscount, currentCashier, heldOrders, activeKitchenTicket } = get();
         if (!cart.length) throw new Error("Add products before parking an order.");
         if (status !== "held" && status !== "pending-payment") throw new Error("Invalid parked order status.");
         const snapshot: ParkedOrder = {
           id: shortId("H"), at: todayISO(), updatedAt: todayISO(),
           cart: cart.map((item) => ({ ...item, modifiers: item.modifiers.map((mod) => ({ ...mod })) })),
           orderType, table, customerId, billDiscount, cashier: currentCashier, status,
+          ...(activeKitchenTicket ? { ...activeKitchenTicket, id: activeKitchenTicket.id } : {}),
         };
         set({
           heldOrders: [...heldOrders, snapshot],
-          cart: [], billDiscount: 0, table: undefined,
+          cart: [], billDiscount: 0, table: undefined, activeKitchenTicket: undefined,
+        });
+      },
+      dispatchCartToKitchen: () => {
+        if (!get().cart.length) throw new Error("Add products before dispatching to kitchen.");
+        if (get().activeKitchenTicket) throw new Error("This ticket is already in kitchen preparation.");
+        get().holdOrder("pending-payment");
+        const held = get().heldOrders.at(-1)!;
+        const now = todayISO();
+        set({
+          heldOrders: get().heldOrders.map((order) => order.id === held.id ? { ...order, kitchenStatus: "new", kitchenDoneLineIds: [], kitchenDispatchedAt: now } : order),
+          activityLog: [{ id: shortId("A"), createdAt: now, operator: get().currentCashier, action: "kitchen.dispatched_unpaid", subjectId: held.id, details: `Prepayment kitchen ticket ${held.id}` }, ...get().activityLog],
         });
       },
       recallOrder: (id) => {
@@ -302,6 +326,7 @@ export const useStore = create<State>()(
           orderType: held.orderType, table: held.table, customerId: held.customerId,
           billDiscount: held.billDiscount ?? 0,
           heldOrders: heldOrders.filter((h) => h.id !== id),
+          activeKitchenTicket: held.kitchenStatus ? { id: held.id, kitchenStatus: held.kitchenStatus, kitchenDoneLineIds: held.kitchenDoneLineIds, kitchenChef: held.kitchenChef, kitchenDispatchedAt: held.kitchenDispatchedAt } : undefined,
         });
       },
       setParkedStatus: (id, status, reason) => {
@@ -334,16 +359,24 @@ export const useStore = create<State>()(
         if (!Number.isFinite(paid) || paid < t.total || paid < 0) {
           throw new Error("Payment must cover the total bill.");
         }
+        const stockDemand = new Map<string, number>();
         for (const item of cart) {
           if (!Number.isInteger(item.qty) || item.qty < 1 || !Number.isFinite(item.unitPrice) || item.unitPrice < 0) {
             throw new Error("Cart contains an invalid item quantity or price.");
           }
           const product = products.find((p) => p.id === item.productId);
           if (!product || !product.available) throw new Error("A product in the cart is no longer available.");
-          if (product.trackStock) {
-            const requested = cart.filter((c) => c.productId === product.id).reduce((n, c) => n + c.qty, 0);
-            if (requested > product.stock) throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}.`);
+          if (product.recipe?.length) {
+            for (const ingredient of product.recipe) {
+              stockDemand.set(ingredient.ingredientProductId, (stockDemand.get(ingredient.ingredientProductId) ?? 0) + ingredient.qty * item.qty);
+            }
+          } else if (product.trackStock) {
+            stockDemand.set(product.id, (stockDemand.get(product.id) ?? 0) + item.qty);
           }
+        }
+        for (const [id, units] of stockDemand) {
+          const product = products.find((p) => p.id === id);
+          if (!product || !product.trackStock || units > product.stock + 0.000001) throw new Error(`Insufficient stock for ${product?.name ?? "recipe ingredient"}.`);
         }
         const customer = customers.find((c) => c.id === customerId);
         const order: Order = {
@@ -355,7 +388,15 @@ export const useStore = create<State>()(
           customerName: customer?.name,
           table,
           orderType,
-          items: cart.map((item) => ({ ...item, modifiers: item.modifiers.map((m) => ({ ...m })), unitCostSnapshot: products.find((p) => p.id === item.productId)?.cost ?? item.unitCostSnapshot ?? 0, categoryIdSnapshot: products.find((p) => p.id === item.productId)?.categoryId ?? item.categoryIdSnapshot })),
+          kitchenTicketId: get().activeKitchenTicket?.id,
+          reservationId: orderType === "dine-in" ? get().reservations.find((reservation) =>
+            reservation.status === "seated" && get().restaurantTables.some((tableDef) => tableDef.id === reservation.tableId && tableDef.label === table))?.id : undefined,
+          items: cart.map((item) => ({ ...item, modifiers: item.modifiers.map((m) => ({ ...m })), unitCostSnapshot: (() => {
+            const product = products.find((p) => p.id === item.productId);
+            return product?.recipe?.length ? product.recipe.reduce((sum, ingredient) =>
+              sum + (products.find((p) => p.id === ingredient.ingredientProductId)?.cost ?? 0) * ingredient.qty, 0)
+              : product?.cost ?? item.unitCostSnapshot ?? 0;
+          })(), categoryIdSnapshot: products.find((p) => p.id === item.productId)?.categoryId ?? item.categoryIdSnapshot })),
           subtotal: t.subtotal,
           itemDiscount: t.itemDiscount,
           billDiscount: t.appliedBillDiscount,
@@ -367,13 +408,14 @@ export const useStore = create<State>()(
           change: Math.max(0, paid - t.total),
           paymentMethod: method,
           status: "completed",
-          kitchenStatus: "new",
+          kitchenStatus: get().activeKitchenTicket?.kitchenStatus ?? "new",
+          kitchenDoneLineIds: get().activeKitchenTicket?.kitchenDoneLineIds,
+          kitchenChef: get().activeKitchenTicket?.kitchenChef,
         };
         // deduct stock
         const nextProducts = products.map((p) => {
-          if (!p.trackStock) return p;
-          const soldQty = cart.filter((c) => c.productId === p.id).reduce((s, c) => s + c.qty, 0);
-          return soldQty ? { ...p, stock: Math.max(0, p.stock - soldQty) } : p;
+          const consumed = stockDemand.get(p.id) ?? 0;
+          return consumed > 0 ? { ...p, stock: Math.max(0, p.stock - consumed) } : p;
         });
         // update customer spend
         const nextCustomers = customers.map((c) => c.id === customerId
@@ -383,7 +425,8 @@ export const useStore = create<State>()(
           orders: [order, ...get().orders],
           products: nextProducts,
           customers: nextCustomers,
-          cart: [], billDiscount: 0, table: undefined,
+          cart: [], billDiscount: 0, table: undefined, activeKitchenTicket: undefined,
+          activityLog: [{ id: shortId("A"), createdAt: todayISO(), operator: currentCashier, action: "sale.completed", subjectId: order.id, details: order.invoiceNo }, ...get().activityLog],
         });
         return order;
       },
@@ -396,7 +439,7 @@ export const useStore = create<State>()(
       deleteProduct: (id) => {
         const state = get();
         if (state.cart.some((line) => line.productId === id) || state.heldOrders.some((order) => order.cart.some((line) => line.productId === id)) ||
-          state.orders.some((order) => order.items.some((line) => line.productId === id)) || state.purchases.some((purchase) => purchase.items.some((line) => line.productId === id))) {
+          state.orders.some((order) => order.items.some((line) => line.productId === id)) || state.purchases.some((purchase) => purchase.items.some((line) => line.productId === id)) || state.products.some((product) => product.recipe?.some((line) => line.ingredientProductId === id))) {
           throw new Error("This product is referenced by orders, stock purchases or an active cart. Mark it unavailable instead.");
         }
         set({ products: state.products.filter((p) => p.id !== id) });
@@ -455,9 +498,55 @@ export const useStore = create<State>()(
           suppliers: get().suppliers.map((supplier) => supplier.id === p.supplierId ? { ...supplier, balance: supplier.balance + (p.total - p.paid) } : supplier),
         });
       },
+      settlePurchase: (purchaseId, amount, method, note) => {
+        const purchase = get().purchases.find((p) => p.id === purchaseId);
+        if (!purchase) throw new Error("Purchase not found.");
+        const remaining = purchase.total - purchase.paid;
+        if (!Number.isFinite(amount) || amount <= 0 || amount > remaining + 0.001) throw new Error("Enter an amount within the remaining purchase balance.");
+        if (!["cash", "card", "bank", "easypaisa", "jazzcash"].includes(method)) throw new Error("Invalid settlement method.");
+        const settlement: SupplierSettlement = { id: shortId("SP"), purchaseId, supplierId: purchase.supplierId, amount, method, date: todayISO(), note: note?.slice(0, 250) };
+        set({
+          purchases: get().purchases.map((p) => p.id === purchaseId ? { ...p, paid: p.paid + amount, settlements: [...(p.settlements ?? []), settlement] } : p),
+          suppliers: get().suppliers.map((supplier) => supplier.id === purchase.supplierId ? { ...supplier, balance: Math.max(0, supplier.balance - amount) } : supplier),
+          activityLog: [{ id: shortId("A"), createdAt: todayISO(), operator: get().currentCashier, action: "supplier.settlement", subjectId: purchaseId, details: `${amount} via ${method}` }, ...get().activityLog],
+        });
+      },
+      recordWaste: (productId, qty, reason) => {
+        const product = get().products.find((p) => p.id === productId);
+        if (!product?.trackStock) throw new Error("Choose a tracked inventory item.");
+        if (!Number.isInteger(qty) || qty < 1 || qty > product.stock) throw new Error("Waste quantity must be a whole number within available stock.");
+        if (!reason.trim()) throw new Error("A waste reason is required.");
+        set({
+          products: get().products.map((p) => p.id === productId ? { ...p, stock: p.stock - qty } : p),
+          activityLog: [{ id: shortId("A"), createdAt: todayISO(), operator: get().currentCashier, action: "inventory.waste", subjectId: productId, details: `${qty} units: ${reason.trim().slice(0,150)}` }, ...get().activityLog],
+        });
+      },
+      setRecipe: (productId, lines) => {
+        if (!get().products.some((p) => p.id === productId)) throw new Error("Recipe product not found.");
+        if (!Array.isArray(lines) || lines.some((line) => line.ingredientProductId === productId ||
+          !get().products.some((p) => p.id === line.ingredientProductId && p.trackStock && !p.recipe?.length) ||
+          !Number.isFinite(line.qty) || line.qty <= 0)) throw new Error("Recipe ingredients and positive quantities must refer to tracked stock items.");
+        if (lines.length && get().products.some((p) => p.id !== productId && p.recipe?.some((entry) => entry.ingredientProductId === productId))) throw new Error("A recipe ingredient cannot itself have another recipe.");
+        set({
+          products: get().products.map((p) => p.id === productId ? { ...p, recipe: lines } : p),
+          activityLog: [{ id: shortId("A"), createdAt: todayISO(), operator: get().currentCashier, action: "recipe.updated", subjectId: productId, details: `${lines.length} ingredient lines` }, ...get().activityLog],
+        });
+      },
       addExpense: (e) => set({ expenses: [{ ...e, id: shortId("E") }, ...get().expenses] }),
       updateSettings: (s) => set({ settings: { ...get().settings, ...s } }),
       setKitchenStatus: (id, status) => set({
+        heldOrders: get().heldOrders.map((held) => {
+          if (held.id !== id || !held.kitchenStatus) return held;
+          const steps: Record<string, string> = { new: "preparing", preparing: "ready", ready: "served" };
+          if (steps[held.kitchenStatus] !== status) return held;
+          if (status === "ready" && held.cart.some((item) => !(held.kitchenDoneLineIds ?? []).includes(item.lineId))) return held;
+          return { ...held, kitchenStatus: status };
+        }),
+        activeKitchenTicket: get().activeKitchenTicket?.id === id
+          ? (() => { const ticket = get().activeKitchenTicket!; const steps: Record<string, string> = { new: "preparing", preparing: "ready", ready: "served" };
+            if (steps[ticket.kitchenStatus ?? "new"] !== status || status === "ready" && get().cart.some((item) => !(ticket.kitchenDoneLineIds ?? []).includes(item.lineId))) return ticket;
+            return { ...ticket, kitchenStatus: status }; })()
+          : get().activeKitchenTicket,
         orders: get().orders.map((order) => {
           if (order.id !== id || order.status !== "completed") return order;
           const current = order.kitchenStatus ?? "new";
@@ -468,6 +557,14 @@ export const useStore = create<State>()(
         }),
       }),
       toggleKitchenItem: (orderId, lineId) => set({
+        heldOrders: get().heldOrders.map((ticket) => {
+          if (ticket.id !== orderId || ticket.kitchenStatus !== "preparing" || !ticket.cart.some((item) => item.lineId === lineId)) return ticket;
+          const completed = ticket.kitchenDoneLineIds ?? [];
+          return { ...ticket, kitchenDoneLineIds: completed.includes(lineId) ? completed.filter((id) => id !== lineId) : [...completed, lineId] };
+        }),
+        activeKitchenTicket: get().activeKitchenTicket?.id === orderId && get().activeKitchenTicket?.kitchenStatus === "preparing" && get().cart.some((item) => item.lineId === lineId)
+          ? (() => { const ticket = get().activeKitchenTicket!; const ids = ticket.kitchenDoneLineIds ?? []; return { ...ticket, kitchenDoneLineIds: ids.includes(lineId) ? ids.filter((id) => id !== lineId) : [...ids, lineId] }; })()
+          : get().activeKitchenTicket,
         orders: get().orders.map((order) => {
           if (order.id !== orderId || order.status !== "completed" || order.kitchenStatus !== "preparing" || !order.items.some((item) => item.lineId === lineId)) return order;
           const done = order.kitchenDoneLineIds ?? [];
@@ -475,11 +572,37 @@ export const useStore = create<State>()(
         }),
       }),
       assignKitchenChef: (orderId, chef) => set({
+        heldOrders: get().heldOrders.map((ticket) => ticket.id === orderId && (ticket.kitchenStatus === "new" || ticket.kitchenStatus === "preparing") ? { ...ticket, kitchenChef: chef.slice(0, 50) } : ticket),
+        activeKitchenTicket: get().activeKitchenTicket?.id === orderId && ["new", "preparing"].includes(get().activeKitchenTicket?.kitchenStatus ?? "") ? { ...get().activeKitchenTicket, kitchenChef: chef.slice(0,50) } : get().activeKitchenTicket,
         orders: get().orders.map((order) =>
           order.id === orderId && order.status === "completed" && (order.kitchenStatus === "new" || order.kitchenStatus === "preparing") ?
           { ...order, kitchenChef: chef.slice(0, 50) } : order,
         ),
       }),
+      requestRefund: (orderId, reason) => {
+        const order = get().orders.find((o) => o.id === orderId);
+        if (!order || order.status !== "completed") throw new Error("Only completed sales may be submitted for refund review.");
+        if (!reason.trim()) throw new Error("A refund reason is required.");
+        if (get().refundRequests.some((request) => request.orderId === orderId && request.status === "pending")) throw new Error("This sale already has a pending refund request.");
+        const eventTime = todayISO();
+        set({
+          refundRequests: [{ id: shortId("RR"), orderId, reason: reason.trim().slice(0, 300), requestedBy: get().currentCashier, status: "pending", createdAt: eventTime }, ...get().refundRequests],
+          activityLog: [{ id: shortId("A"), createdAt: eventTime, operator: get().currentCashier, action: "refund.requested", subjectId: orderId, details: reason.trim().slice(0, 150) }, ...get().activityLog],
+        });
+      },
+      resolveRefundRequest: (id, approve) => {
+        const request = get().refundRequests.find((entry) => entry.id === id);
+        if (!request || request.status !== "pending") throw new Error("Pending refund request not found.");
+        const order = get().orders.find((entry) => entry.id === request.orderId);
+        if (!order || order.status !== "completed") throw new Error("This sale is no longer eligible for a refund.");
+        // Demo approval workflow, NOT server-side authorization.
+        if (approve) get().refundOrder(request.orderId);
+        const now = todayISO();
+        set({
+          refundRequests: get().refundRequests.map((entry) => entry.id === id ? { ...entry, status: approve ? "approved" : "rejected", resolvedBy: get().currentCashier, resolvedAt: now } : entry),
+          activityLog: [{ id: shortId("A"), createdAt: now, operator: get().currentCashier, action: approve ? "refund.approved_demo" : "refund.rejected_demo", subjectId: request.orderId, details: request.reason }, ...get().activityLog],
+        });
+      },
       refundOrder: (id) => {
         const { orders, products, customers } = get();
         const order = orders.find((o) => o.id === id);
@@ -494,6 +617,7 @@ export const useStore = create<State>()(
           products: nextProducts,
           customers: nextCustomers,
           orders: orders.map((o) => o.id === id ? { ...o, status: "refunded" } : o),
+          activityLog: [{ id: shortId("A"), createdAt: todayISO(), operator: get().currentCashier, action: "sale.refunded", subjectId: id, details: order.invoiceNo }, ...get().activityLog],
         });
       },
       resetAll: () => {

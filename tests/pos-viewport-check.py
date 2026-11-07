@@ -117,6 +117,23 @@ with sync_playwright() as p:
     kitchen_page.close()
     print("PASS kitchen ticket lifecycle")
 
+    # Kitchen can receive unpaid orders before checkout, without double-counting a sale.
+    unpaid_page = browser.new_page(viewport={"width": 1280, "height": 800})
+    unpaid_page.goto(BASE + "/pos", wait_until="networkidle")
+    unpaid_page.locator("article.group").first.locator("button").first.click()
+    unpaid_page.get_by_role("button", name="Send to Kitchen (unpaid)").click()
+    pending_state = unpaid_page.evaluate("JSON.parse(localStorage.getItem('spice-pos-v1')).state")
+    assert len(pending_state["orders"]) == 0, "Dispatch must not create a paid sale"
+    assert any(item.get("kitchenStatus") == "new" for item in pending_state["heldOrders"]), "Unpaid kitchen ticket missing"
+    unpaid_page.goto(BASE + "/kitchen", wait_until="networkidle")
+    assert unpaid_page.get_by_text("Awaiting payment · Local kitchen ticket").first.is_visible()
+    unpaid_page.get_by_role("button", name="Start Preparing").first.click()
+    unpaid_page.get_by_role("button", name=re.compile(r"^Mark .+ prepared$")).first.click()
+    unpaid_page.get_by_role("button", name="Mark Ready").first.click()
+    unpaid_page.screenshot(path=str(OUT / "kitchen-unpaid-1280x800.png"), full_page=False)
+    unpaid_page.close()
+    print("PASS unpaid kitchen dispatch")
+
     # Audit the previously disconnected purchase->supplier and settings->backup UI paths.
     audit_page = browser.new_page(viewport={"width": 1280, "height": 800}, accept_downloads=True)
     audit_page.goto(BASE + "/purchases", wait_until="networkidle")
@@ -128,6 +145,15 @@ with sync_playwright() as p:
     assert recorded_state["purchases"][0]["paid"] == 0, "Purchase partial payment was not saved"
     selected_supplier = recorded_state["suppliers"][0]
     assert selected_supplier["balance"] > 0, "Supplier payable was not updated"
+    audit_page.get_by_role("button", name="Pay balance").first.click()
+    assert audit_page.get_by_role("heading", name="Supplier Payment").is_visible()
+    audit_page.get_by_role("spinbutton", name="Supplier settlement amount").fill("50")
+    audit_page.get_by_role("button", name="Record Payment").click()
+    settlement_state = audit_page.evaluate("JSON.parse(localStorage.getItem('spice-pos-v1')).state")
+    assert settlement_state["purchases"][0]["paid"] == 50, "Supplier settlement was not recorded"
+    assert settlement_state["purchases"][0]["settlements"][0]["amount"] == 50, "Settlement details missing"
+    assert any(event["action"] == "supplier.settlement" for event in settlement_state["activityLog"]), "Missing supplier activity event"
+
     audit_page.goto(BASE + "/settings", wait_until="networkidle")
     assert audit_page.get_by_text("Demo Operator Profile").is_visible()
     audit_page.get_by_placeholder("Demo operator").fill("Audit Operator")
@@ -140,6 +166,7 @@ with sync_playwright() as p:
     assert backup_content["version"] == 2, "Expected current backup version"
     assert all(key in backup_content["data"] for key in ["restaurantTables", "reservations", "heldOrders", "parkedHistory", "purchases", "currentCashier"]), "Missing linked backup records"
     assert backup_content["data"]["currentCashier"] == "Audit Operator", "Operator display name was not saved"
+    assert "activityLog" in backup_content["data"], "Activity history not included in backup"
     audit_page.close()
     print("PASS audit: supplier payable, demo operator and linked JSON backup")
 

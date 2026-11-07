@@ -12,7 +12,7 @@ export const Route = createFileRoute("/settings")({
 });
 
 function SettingsPage() {
-  const { settings, updateSettings, resetAll, products, categories, customers, orders, currentCashier, setCurrentCashier } = useStore();
+  const { settings, updateSettings, resetAll, products, categories, customers, orders, activityLog, refundRequests, resolveRefundRequest, currentCashier, setCurrentCashier } = useStore();
   const [operatorName, setOperatorName] = useState(currentCashier);
   const importRef = useRef<HTMLInputElement>(null);
   const [s, setS] = useState<Settings>(settings);
@@ -32,6 +32,8 @@ function SettingsPage() {
         cart: state.cart, orderType: state.orderType, table: state.table,
         customerId: state.customerId, billDiscount: state.billDiscount,
         currentCashier: state.currentCashier,
+        activityLog: state.activityLog,
+        refundRequests: state.refundRequests,
       },
     }, null, 2);
     const url = URL.createObjectURL(new Blob([data], { type: "application/json" }));
@@ -100,6 +102,8 @@ function SettingsPage() {
         customerId: records.customerId,
         billDiscount: records.billDiscount,
         currentCashier: records.currentCashier,
+        activityLog: Array.isArray(records.activityLog) ? records.activityLog : [],
+        refundRequests: Array.isArray(records.refundRequests) ? records.refundRequests : [],
       });
       useStore.setState(next);
       setS(records.settings as Settings);
@@ -175,6 +179,30 @@ function SettingsPage() {
             </div>
           </div>
 
+          <div className="card-elevated p-5 text-sm">
+            <h3 className="mb-1 font-bold">Refund review queue (demo)</h3>
+            <p className="mb-3 text-xs text-muted-foreground">This is a sample approval workflow, not real manager authorization. Any browser user can reach these buttons. Production must restrict reviews to authenticated managers.</p>
+            <div className="space-y-2">{refundRequests.filter((entry) => entry.status === "pending").map((entry) => (
+              <div key={entry.id} className="rounded-lg border p-3 text-xs">
+                <p className="font-semibold">Order {entry.orderId}</p>
+                <p className="mt-1 text-muted-foreground">{entry.reason} · Requested by {entry.requestedBy}</p>
+                <div className="mt-2 flex gap-2">
+                  <button type="button" onClick={() => { try { resolveRefundRequest(entry.id, true); toast.success("Refund approved in demo ledger"); } catch (error) { toast.error(error instanceof Error ? error.message : "Unable to approve"); } }} className="rounded-lg bg-brand-gradient px-3 py-1.5 font-bold text-brand-foreground">Approve (demo)</button>
+                  <button type="button" onClick={() => { try { resolveRefundRequest(entry.id, false); toast.success("Refund request rejected"); } catch (error) { toast.error(error instanceof Error ? error.message : "Unable to reject"); } }} className="rounded-lg border px-3 py-1.5 font-semibold">Reject</button>
+                </div>
+              </div>
+            ))}{!refundRequests.some((entry) => entry.status === "pending") && <p className="text-xs text-muted-foreground">No pending review requests.</p>}</div>
+          </div>
+          <div className="card-elevated p-6 text-sm">
+            <h3 className="mb-2 font-semibold">Local activity history</h3>
+            <p className="mb-3 text-xs text-muted-foreground">Demo-only events. These can be edited by anyone with browser data access; they are not a secure audit trail.</p>
+            <div className="max-h-48 space-y-2 overflow-y-auto">{activityLog.slice(0,15).map((event) => (
+              <div key={event.id} className="rounded-lg border p-2 text-[11px]">
+                <div className="flex justify-between gap-2"><b>{event.action}</b><span className="text-muted-foreground">{new Date(event.createdAt).toLocaleString("en-PK")}</span></div>
+                <div className="mt-1 text-muted-foreground">{event.details} · {event.operator}</div>
+              </div>
+            ))}</div>
+          </div>
           <div className="card-elevated p-6 text-sm">
             <h3 className="font-semibold mb-3">System info</h3>
             <ul className="space-y-1 text-muted-foreground">
