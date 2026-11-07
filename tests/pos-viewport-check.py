@@ -45,6 +45,16 @@ def test_pos(browser, width, height, mobile=False):
         page.get_by_title("Toggle order list").click()
         assert page.get_by_role("heading", name="Order List").is_visible()
         page.get_by_role("button", name="Close order list").click()
+    # The compact item list must expand to editable quantity, discount and notes.
+    item_editor = page.get_by_role("button", name="Expand Zinger Burger options")
+    item_editor.click()
+    discount_field = page.get_by_role("spinbutton", name="Discount percent for Zinger Burger")
+    assert discount_field.is_visible(), "Line discount editor missing"
+    discount_field.fill("20")
+    assert discount_field.input_value() == "20"
+    assert page.get_by_text("Line discount").is_visible()
+    page.get_by_role("button", name="Collapse Zinger Burger options").click()
+    assert not discount_field.is_visible(), "Expanded controls still visible after collapse"
     line_list = page.get_by_label("Order line items")
     charge = page.get_by_role("button", name="Take Payment")
     assert charge.is_visible(), f"Charge action hidden at {width}x{height}"

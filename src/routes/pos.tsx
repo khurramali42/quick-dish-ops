@@ -5,7 +5,7 @@ import { money } from "@/lib/format";
 import type { OrderType, PaymentMethod, Product } from "@/lib/types";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Search, X, Plus, Minus, ChevronLeft, ChevronRight, Trash2, Pause, Play, Printer, Percent, CreditCard, ClipboardList, Clock3, CheckCircle2,
+  Search, X, Plus, Minus, ChevronLeft, ChevronRight, ChevronDown, Trash2, Pause, Play, Printer, Percent, CreditCard, ClipboardList, Clock3, CheckCircle2,
   Utensils, Bike, ShoppingBag, Truck, Keyboard, User, StickyNote, Bell, Settings2, PanelLeftOpen, PanelLeftClose,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -34,7 +34,7 @@ const orderTypes: { key: OrderType; label: string; icon: any }[] = [
 function POSScreen() {
   const {
     products, categories, activeCategory, setCategory, search, setSearch,
-    cart, addToCart, updateQty, removeLine, clearCart, updateItemDiscount, updateNote,
+    cart, addToCart, updateQty, removeLine, clearCart, updateItemDiscount, updateItemDiscountPercent, updateNote,
     orderType, setOrderType, table, setTable, customerId, setCustomer, customers,
     billDiscount, setBillDiscount, heldOrders, holdOrder, recallOrder,
     settings, checkout, currentCashier, orders, restaurantTables, reservations,
@@ -52,6 +52,7 @@ function POSScreen() {
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [queueOpen, setQueueOpen] = useState(false);
   const [billPrintOpen, setBillPrintOpen] = useState(false);
+  const [expandedLineId, setExpandedLineId] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
 
@@ -213,15 +214,30 @@ function POSScreen() {
                   Cart is empty. Tap an item to add.
                 </div>
               ) : cart.map((item) => (
-                <div key={item.lineId} className="flex items-center gap-2 bg-card px-1 py-2.5">
-                  <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
-                    {(() => { const product = products.find((p) => p.id === item.productId); return <ProductThumb src={product?.thumbnailUrl ?? product?.imageUrl ?? (product ? demoFoodPhoto(product) : undefined)} emoji={product?.emoji ?? "🍽️"} />; })()}
+                <div key={item.lineId} className={`my-1 overflow-hidden rounded-lg border bg-card transition-colors ${expandedLineId === item.lineId ? "border-l-[3px] border-l-brand bg-muted/20" : "border-transparent bg-muted/40"}`}>
+                  <div className="flex min-w-0 items-center gap-1.5 px-1.5 py-2">
+                    <button type="button" aria-label={`${expandedLineId === item.lineId ? "Collapse" : "Expand"} ${item.name} options`} aria-expanded={expandedLineId === item.lineId} onClick={() => setExpandedLineId(expandedLineId === item.lineId ? null : item.lineId)} className="flex h-7 w-5 shrink-0 items-center justify-center text-muted-foreground hover:text-brand">
+                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedLineId === item.lineId ? "" : "-rotate-90"}`} />
+                    </button>
+                    <button type="button" onClick={() => setExpandedLineId(expandedLineId === item.lineId ? null : item.lineId)} className="min-w-0 flex-1 text-left">
+                      <span className="block truncate text-[11px] font-bold"><span className="mr-1 text-brand">{item.qty}×</span>{item.name}</span>
+                      {(item.note || item.modifiers.length > 0 || item.discount > 0) && <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">{[item.modifiers.map((modifier) => modifier.name).join(", "), item.note, item.discount > 0 ? `Discount: ${money(item.discount, settings.currency)}` : ""].filter(Boolean).join(" · ")}</span>}
+                    </button>
+                    <span className="shrink-0 text-[11px] font-extrabold tabular-nums">{money(item.unitPrice * item.qty - item.discount, settings.currency)}</span>
+                    <button type="button" onClick={() => { removeLine(item.lineId); if (expandedLineId === item.lineId) setExpandedLineId(null); }} aria-label={`Remove ${item.name}`} className="flex h-6 w-5 shrink-0 items-center justify-center text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[11px] font-semibold"><span className="mr-1 font-bold text-brand">{item.qty}×</span>{item.name}</p>
-                    <p className="mt-0.5 truncate text-[10px] text-muted-foreground">{item.note || item.modifiers?.map((mod) => mod.name).join(", ") || "No extras"}</p>
-                  </div>
-                  <div className="flex shrink-0 flex-col items-end gap-1"><button onClick={() => setReviewOpen(true)} className="text-[10px] font-semibold text-brand hover:underline">✎ Edit</button><span className="text-[11px] font-bold tabular-nums">{money(item.unitPrice * item.qty - item.discount, settings.currency)}</span></div>
+                  {expandedLineId === item.lineId && <div className="grid grid-cols-2 gap-2 border-t bg-card px-3 pb-3 pt-2.5">
+                    <label className="space-y-1 text-[10px] font-semibold text-muted-foreground">Quantity
+                      <input type="number" min={1} max={999} value={item.qty} onChange={(e) => { if (e.target.value && Number(e.target.value) > 0) updateQty(item.lineId, Math.min(999, Number(e.target.value))); }} className="h-9 w-full rounded-md border bg-background px-2.5 text-right text-xs font-bold text-foreground tabular-nums focus:outline-none focus:ring-2 focus:ring-brand/25" />
+                    </label>
+                    <label className="space-y-1 text-[10px] font-semibold text-muted-foreground">Discount (%)
+                      <input type="number" min={0} max={100} step={0.5} aria-label={`Discount percent for ${item.name}`} value={Number((item.discountPercent ?? (item.unitPrice * item.qty > 0 ? item.discount / (item.unitPrice * item.qty) * 100 : 0)).toFixed(2))} onChange={(e) => updateItemDiscountPercent(item.lineId, Number(e.target.value))} className="h-9 w-full rounded-md border bg-background px-2.5 text-right text-xs font-bold text-foreground tabular-nums focus:outline-none focus:ring-2 focus:ring-brand/25" />
+                    </label>
+                    <label className="col-span-2 space-y-1 text-[10px] font-semibold text-muted-foreground">Item note
+                      <input value={item.note ?? ""} onChange={(e) => updateNote(item.lineId, e.target.value)} placeholder="Special instructions..." className="h-8 w-full rounded-md border bg-background px-2 text-[11px] font-normal text-foreground focus:outline-none focus:ring-2 focus:ring-brand/25" />
+                    </label>
+                    <div className="col-span-2 flex justify-between border-t pt-2 text-[10px] text-muted-foreground"><span>Line discount</span><span className="font-semibold text-brand">− {money(item.discount, settings.currency)}</span></div>
+                  </div>}
                 </div>              ))}
             </div>
 
