@@ -14,7 +14,7 @@ beforeEach(() => {
     suppliers: structuredClone(seedSuppliers),
     customers: structuredClone(seedCustomers),
     settings: { ...seedSettings, serviceChargePct: 0 },
-    orders: [], purchases: [], heldOrders: [], activeKitchenTicket: undefined, activityLog: [], cart: [item], billDiscount: 0, customerId: "cu1",
+    orders: [], purchases: [], heldOrders: [], refundRequests: [], activeKitchenTicket: undefined, activityLog: [], cart: [item], billDiscount: 0, customerId: "cu1", orderType: "dine-in", table: undefined, reservations: [],
   });
 });
 
@@ -106,6 +106,33 @@ describe("public demo operational extensions", () => {
     expect(completed.kitchenDoneLineIds).toEqual([item.lineId]);
     expect(useStore.getState().activeKitchenTicket).toBeUndefined();
     expect(useStore.getState().heldOrders).toHaveLength(0);
+  });
+
+  test("refund review requires reason and can be approved only once", () => {
+    const order = useStore.getState().checkout(700, "cash");
+    expect(() => useStore.getState().requestRefund(order.id, " ")).toThrow(/reason/);
+    useStore.getState().requestRefund(order.id, "Wrong order");
+    expect(() => useStore.getState().requestRefund(order.id, "Second request")).toThrow(/pending/);
+    const request = useStore.getState().refundRequests[0];
+    expect(request.status).toBe("pending");
+    useStore.getState().resolveRefundRequest(request.id, true);
+    expect(useStore.getState().orders[0].status).toBe("refunded");
+    expect(useStore.getState().refundRequests[0].status).toBe("approved");
+    expect(useStore.getState().activityLog.some((event) => event.action === "refund.approved_demo")).toBe(true);
+    expect(() => useStore.getState().resolveRefundRequest(request.id, true)).toThrow(/Pending/);
+  });
+
+  test("checkout links seated table reservation and preserves ingredient cost snapshot", () => {
+    useStore.setState({
+      restaurantTables: [{ id: "T1", label: "T1", seats: 4, area: "Main Hall", enabled: true }],
+      reservations: [{ id: "R1", tableId: "T1", guestName: "Demo Guest", phone: "", guests: 2,
+        startAt: new Date().toISOString(), durationMinutes: 90, status: "seated", createdAt: new Date().toISOString() }],
+      orderType: "dine-in", table: "T1",
+    });
+    useStore.getState().setRecipe("p1", [{ ingredientProductId: "p2", qty: 0.5 }]);
+    const order = useStore.getState().checkout(700, "cash");
+    expect(order.reservationId).toBe("R1");
+    expect(order.items[0].unitCostSnapshot).toBe(160);
   });
 
   test("waste movement requires a reason and cannot exceed actual stock", () => {
