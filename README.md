@@ -1,11 +1,11 @@
 # Quick Dish Ops
 
-**Open-source restaurant POS and operations demo.** Explore the code, run it locally, test the workflows and contribute improvements. This GitHub repository is the distribution point; **no public hosted demo is offered**.
+**Open-source, self-hostable restaurant POS starter.** Clone this project, connect your own database and hosting domain, and customize its source. No original-author backend credentials are required.
 
 [![Build and tests](https://github.com/khurramali42/quick-dish-ops/actions/workflows/build.yml/badge.svg)](https://github.com/khurramali42/quick-dish-ops/actions/workflows/build.yml)
 [![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> **Demo software, not a production restaurant system.** All orders, customers, stock and settings are kept in the current browser's local storage. There is no account login, central database, device synchronization, real payment collection or audited ledger. Use **sample data only**, never actual personal/financial records. Clearing browser data may permanently erase changes.
+> **Two modes:** No credentials gives the original browser-local demo. With your own Supabase project URL and publishable key, email/password accounts can save an owner-isolated workspace. This is **not** a multi-staff transactional financial backend or a real payment gateway. Use demo data until you independently verify production requirements.
 
 ## Application screenshots
 
@@ -42,9 +42,15 @@ To regenerate these screenshots from the latest source, use the [Capture current
 - **Products and inventory:** categories, images, stock, ingredient recipes and reason-coded waste adjustments
 - **Purchasing:** supplier records, incoming stock, partial supplier invoice settlements and expense entries
 - **Customers and reports:** example customer records, basic sales summaries and financial snapshots
-- **Local data:** JSON export, guarded restore and a browser-editable demo activity history through Settings
+- **Persistence:** original browser-local demo or own-Supabase per-account workspace with email login and revision-checked autosaves; JSON backup/export remains available.
 
 Some interfaces represent **simulated processes**, not integrations with payment terminals, accounting software, card networks or external kitchen displays.
+
+## Self-host your own backend and domain
+
+Follow the **[Self-hosting and credentials guide](docs/SELF_HOSTING.md)**. Developers set their own Supabase project URL and publishable key using [`.env.example`](.env.example), and apply the [owner-scoped database setup](docs/backend/personal-workspace.md). End users sign in with email/password. The project can be hosted on a compatible Node/Nitro platform and accessed through a custom domain.
+
+The upstream GitHub repository stays with its current owner. The MIT License permits other developers to clone, fork and deploy their own copies under its license terms.
 
 ## Run locally
 
@@ -57,7 +63,7 @@ bun install --frozen-lockfile
 bun run dev
 ```
 
-Open the local URL shown in the terminal, usually **http://localhost:5173**. You do **not** need Supabase credentials, a payment key, or a hosted service to explore the demo.
+Open the local URL shown in the terminal, usually **http://localhost:5173**. No credentials are required for demo mode. For private database persistence, follow [SELF_HOSTING.md](docs/SELF_HOSTING.md) before building.
 
 ### Tests and local build
 
@@ -92,7 +98,7 @@ See [public release guide](docs/PUBLIC_RELEASE.md) for usable demo features, lic
 
 ## Before using this for a real restaurant
 
-This code is a starting point for development, **not a commercially certified POS**. A real deployment would need secured authentication and roles, a central transactional database, reliable backups, audit trails, privacy controls, server-side inventory and payment validation, hardware/printer testing, multi-device concurrency and jurisdiction-specific tax review. Browser storage cannot safely replace those systems.
+This code is a starting point for development, **not a commercially certified POS**. The optional backend stores an owner's JSON workspace, not server-authorized financial transactions. A real deployment would need secured authentication and roles, a central transactional database, reliable backups, audit trails, privacy controls, server-side inventory and payment validation, hardware/printer testing, multi-device concurrency and jurisdiction-specific tax review. Browser storage cannot safely replace those systems.
 
 ## Contributing and licensing
 
