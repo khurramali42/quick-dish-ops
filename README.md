@@ -48,7 +48,7 @@ Some interfaces represent **simulated processes**, not integrations with payment
 
 ## Self-host your own backend and domain
 
-Follow the **[Self-hosting and credentials guide](docs/SELF_HOSTING.md)**. Developers set their own Supabase project URL and publishable key using [`.env.example`](.env.example), and apply the [owner-scoped database setup](docs/backend/personal-workspace.md). End users sign in with email/password. The project can be hosted on a compatible Node/Nitro platform and accessed through a custom domain.
+Follow the **[Self-hosting and credentials guide](docs/SELF_HOSTING.md)**. Developers set their own Supabase project URL and publishable key using environment variable examples in the self-hosting guide, and apply the [owner-scoped database setup](docs/backend/personal-workspace.md). End users sign in with email/password. The project can be hosted on a compatible Node/Nitro platform and accessed through a custom domain.
 
 The upstream GitHub repository stays with its current owner. The MIT License permits other developers to clone, fork and deploy their own copies under its license terms.
 
