@@ -45,16 +45,16 @@ describe("checkout integrity", () => {
     expect(useStore.getState().products.find(p => p.id === "p1")?.stock).toBe(40);
   });
 
-  test("saves one sale, then restores stock and customer totals on refund", () => {
+  test("refund leaves consumed kitchen stock unchanged while reversing customer spend", () => {
     const order = useStore.getState().checkout(700, "cash");
     expect(order.total).toBeGreaterThan(0);
     expect(useStore.getState().orders).toHaveLength(1);
     expect(useStore.getState().products.find(p => p.id === "p1")?.stock).toBe(39);
     useStore.getState().refundOrder(order.id);
-    expect(useStore.getState().products.find(p => p.id === "p1")?.stock).toBe(40);
+    expect(useStore.getState().products.find(p => p.id === "p1")?.stock).toBe(39);
     expect(useStore.getState().orders[0].status).toBe("refunded");
     useStore.getState().refundOrder(order.id);
-    expect(useStore.getState().products.find(p => p.id === "p1")?.stock).toBe(40);
+    expect(useStore.getState().products.find(p => p.id === "p1")?.stock).toBe(39);
   });
 
   test("caps discounts so taxes and sale total never go negative", () => {
