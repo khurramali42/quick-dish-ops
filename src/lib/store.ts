@@ -88,6 +88,8 @@ interface State {
   updateSettings: (s: Partial<Settings>) => void;
   refundOrder: (id: string) => void;
   setKitchenStatus: (id: string, status: "new" | "preparing" | "ready" | "served") => void;
+  toggleKitchenItem: (orderId: string, lineId: string) => void;
+  assignKitchenChef: (orderId: string, chef: string) => void;
   resetAll: () => void;
 }
 
@@ -409,6 +411,19 @@ export const useStore = create<State>()(
       setKitchenStatus: (id, status) => set({
         orders: get().orders.map((order) =>
           order.id === id && order.status === "completed" ? { ...order, kitchenStatus: status } : order,
+        ),
+      }),
+      toggleKitchenItem: (orderId, lineId) => set({
+        orders: get().orders.map((order) => {
+          if (order.id !== orderId || order.status !== "completed" || order.kitchenStatus !== "preparing" || !order.items.some((item) => item.lineId === lineId)) return order;
+          const done = order.kitchenDoneLineIds ?? [];
+          return { ...order, kitchenDoneLineIds: done.includes(lineId) ? done.filter((id) => id !== lineId) : [...done, lineId] };
+        }),
+      }),
+      assignKitchenChef: (orderId, chef) => set({
+        orders: get().orders.map((order) =>
+          order.id === orderId && order.status === "completed" && (order.kitchenStatus === "new" || order.kitchenStatus === "preparing") ?
+          { ...order, kitchenChef: chef.slice(0, 50) } : order,
         ),
       }),
       refundOrder: (id) => {

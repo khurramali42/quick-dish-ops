@@ -144,6 +144,8 @@ export interface Order {
   paymentMethod: PaymentMethod;
   status: OrderStatus;
   kitchenStatus?: "new" | "preparing" | "ready" | "served";
+  kitchenDoneLineIds?: string[];
+  kitchenChef?: string;
   note?: string;
 }
 

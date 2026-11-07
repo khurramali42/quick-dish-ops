@@ -30,6 +30,9 @@ def test_pos(browser, width, height, mobile=False):
     else:
         assert page.get_by_role("button", name="Menu", exact=True).is_visible()
 
+    if width >= 900:
+        card_height = card_boxes[0]["height"]
+        assert card_height < 220, f"POS product cards are still oversized at {width}px: {card_height}px"
     for i in range(14):
         cards.nth(i).locator("button").first.click(timeout=10000)
     if mobile:
@@ -65,6 +68,33 @@ with sync_playwright() as p:
     test_pos(browser, 1280, 720)
     test_pos(browser, 900, 800)
     test_pos(browser, 390, 844, mobile=True)
+    # End-to-end kitchen state progression: checkout -> queue -> preparing -> ready -> served.
+    kitchen_page = browser.new_page(viewport={"width": 1440, "height": 900})
+    browser_errors = []
+    kitchen_page.on("pageerror", lambda error: browser_errors.append(str(error)))
+    kitchen_page.goto(BASE + "/pos", wait_until="networkidle")
+    kitchen_page.locator("article.group").first.locator("button").first.click()
+    kitchen_page.get_by_role("button", name="Take Payment").click()
+    kitchen_page.get_by_role("button", name="Complete Payment").click()
+    kitchen_page.goto(BASE + "/kitchen", wait_until="networkidle")
+    assert kitchen_page.get_by_role("heading", name="Kitchen Display").is_visible()
+    assert kitchen_page.get_by_label("Queued").is_visible()
+    assert kitchen_page.get_by_label("Preparing").is_visible()
+    assert kitchen_page.get_by_label("Ready").is_visible()
+    kitchen_page.get_by_role("button", name="Start Preparing").click()
+    assert kitchen_page.get_by_role("button", name="Mark Ready").is_disabled()
+    prep_buttons = kitchen_page.get_by_role("button", name=re.compile(r"^Mark .+ prepared$"))
+    assert prep_buttons.count() >= 1
+    for item_button in prep_buttons.all():
+        item_button.click()
+    kitchen_page.get_by_role("button", name="Mark Ready").click()
+    kitchen_page.get_by_role("button", name="Mark Served").click()
+    assert kitchen_page.get_by_role("button", name="Start Preparing").count() == 0
+    assert not browser_errors, f"Kitchen browser errors: {browser_errors}"
+    kitchen_page.screenshot(path=str(OUT / "kitchen-1440x900.png"), full_page=False)
+    kitchen_page.close()
+    print("PASS kitchen ticket lifecycle")
+
     for width, height in [(1440, 900), (900, 800), (390, 844)]:
         page = browser.new_page(viewport={"width": width, "height": height})
         error_log = []
