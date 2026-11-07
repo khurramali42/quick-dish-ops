@@ -9,13 +9,31 @@
 
 ## Application screenshots
 
-These are authentic browser screenshots from the application, using fictional demo data. They are not AI-generated marketing mockups.
+Real Chromium screenshots captured from the **current built application**, using fictional local demo records. No design mockups or synthetic UI screenshots are substituted.
 
-| Dashboard | Point of sale |
+| Dashboard | Cashier / POS |
 | --- | --- |
-| ![Dashboard](docs/screenshots/dashboard.png) | ![POS checkout](docs/screenshots/pos.png) |
+| ![Latest dashboard with demo sales](docs/screenshots/dashboard.png) | ![Latest cashier and compact product cards](docs/screenshots/pos.png) |
 
-![Orders screen](docs/screenshots/orders.png)
+| Kitchen display | Tables and reservations |
+| --- | --- |
+| ![Queued, preparing and ready kitchen Kanban](docs/screenshots/kitchen.png) | ![Table booking and restaurant floor](docs/screenshots/tables.png) |
+
+| Orders | Inventory |
+| --- | --- |
+| ![Order history](docs/screenshots/orders.png) | ![Inventory and recipe management](docs/screenshots/inventory.png) |
+
+| Menu products | Supplier purchases |
+| --- | --- |
+| ![Product and menu management](docs/screenshots/products.png) | ![Purchase invoices and supplier settlement](docs/screenshots/purchases.png) |
+
+| Settings | Mobile POS |
+| --- | --- |
+| ![Settings and demo operator](docs/screenshots/settings.png) | ![Responsive mobile cashier menu](docs/screenshots/mobile-pos.png) |
+
+![Responsive mobile order cart and totals](docs/screenshots/mobile-cart.png)
+
+To regenerate these screenshots from the latest source, use the [Capture current application screenshots](.github/workflows/capture-screenshots.yml) workflow. Pull requests receive preview artifacts; after the workflow changes merge to `main`, its capture job can publish the updated PNG files. Only fictional browser-local data is used.
 
 ## What you can explore
 
