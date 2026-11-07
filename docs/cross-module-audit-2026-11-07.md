@@ -17,7 +17,7 @@
 | Products/Customers/Suppliers ↔ History | Referenced IDs protected from destructive deletion | No organization-wide role checks or audit log |
 | Settings → POS/Receipts | Business/branch names, service charge, currency and receipt settings used; default product tax assigned on new product | Existing products keep their own tax rate; tax law and payment methods not certified |
 | Settings → Backup | v2 exports sales, catalog, suppliers, tables, reservations, active/parked orders, cart and demo operator | JSON is local, unencrypted, manually retained and not transactionally imported from a trusted server |
-| Orders → Reports/Dashboard | New sales capture unit cost for historical estimated profit | Older orders without cost snapshots fall back to current product cost; discounts/taxes/ingredient cost are approximate |
+| Orders → Reports/Dashboard | New sales capture unit cost and category at checkout for historical estimated profit and category revenue | Older orders without cost snapshots fall back to current product cost; discounts/taxes/ingredient cost are approximate |
 | Profile → Operators | Editable demo cashier display name | **No login, passwords, role checks, staff sessions or actual authentication** |
 
 ## Confirmed issues corrected in this audit PR
@@ -32,6 +32,8 @@
 8. Profile was a static name. Settings now offers a clearly labeled **demo operator display name** without pretending it is authenticated.
 9. Settings tax default was not applied to new products. New product forms now initialize from the current default.
 10. Money formatter displayed no fractions, hiding decimal portions of tax or discounts. It now displays up to two decimal places as needed.
+11. Tax collected was counted toward estimated profit. Dashboard/report estimates now subtract that liability.
+12. Changing a product’s category affected the historical sales-by-category report. New sales snapshot the category and allocate bill discounts.
 
 ## Open requirements and risks
 
@@ -49,7 +51,7 @@
 - Refund/return approvals and explicit stock disposition (return to sellable stock versus discard).
 
 ### Medium
-- Historical category revenue should reflect historical category assignments and allocate bill-wide discounts; current chart uses product's present category and gross item price.
+- Historical category revenue for **new** sales now uses sale-time category snapshots and allocates bill-wide discounts; old orders remain best-effort because they lack snapshots.
 - Existing products' tax rates are not retroactively changed by the global default, intentionally; owners must review per-item tax.
 - Older orders lack frozen unit-cost snapshots and therefore retain estimated profit based on present product master costs.
 - Restore validation checks required shape/links but does not provide cryptographic authenticity or a full DB-style schema migration.
