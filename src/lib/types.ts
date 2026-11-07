@@ -82,7 +82,8 @@ export interface CartItem {
   variant?: string;
   modifiers: Modifier[];
   note?: string;
-  discount: number; // absolute
+  discount: number; // absolute monetary discount on entire line
+  discountPercent?: number; // optional 0-100%; retains percentage when quantity changes
   taxRate: number;
 }
 
