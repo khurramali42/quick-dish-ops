@@ -61,6 +61,7 @@ interface State {
   addToCart: (product: Product, variant?: string) => void;
   updateQty: (lineId: string, qty: number) => void;
   updateItemDiscount: (lineId: string, d: number) => void;
+  updateItemDiscountPercent: (lineId: string, percent: number) => void;
   updateNote: (lineId: string, note: string) => void;
   removeLine: (lineId: string) => void;
   clearCart: () => void;
@@ -220,10 +221,28 @@ export const useStore = create<State>()(
         set({ cart });
       },
       updateQty: (lineId, qty) => set({
-        cart: get().cart.map((c) => c.lineId === lineId ? { ...c, qty: Number.isFinite(qty) ? Math.max(1, Math.floor(qty)) : c.qty } : c),
+        cart: get().cart.map((c) => {
+          if (c.lineId !== lineId || !Number.isFinite(qty)) return c;
+          const nextQty = Math.max(1, Math.floor(qty));
+          const nextSubtotal = c.unitPrice * nextQty;
+          return { ...c, qty: nextQty, discount: c.discountPercent !== undefined
+            ? nextSubtotal * c.discountPercent / 100
+            : Math.min(nextSubtotal, c.discount) };
+        }),
       }),
       updateItemDiscount: (lineId, d) => set({
-        cart: get().cart.map((c) => c.lineId === lineId ? { ...c, discount: Number.isFinite(d) ? Math.min(c.unitPrice * c.qty, Math.max(0, d)) : c.discount } : c),
+        cart: get().cart.map((c) => c.lineId === lineId ? {
+          ...c,
+          discount: Number.isFinite(d) ? Math.min(c.unitPrice * c.qty, Math.max(0, d)) : c.discount,
+          discountPercent: undefined,
+        } : c),
+      }),
+      updateItemDiscountPercent: (lineId, percent) => set({
+        cart: get().cart.map((c) => {
+          if (c.lineId !== lineId || !Number.isFinite(percent)) return c;
+          const safePercent = Math.min(100, Math.max(0, percent));
+          return { ...c, discountPercent: safePercent, discount: c.unitPrice * c.qty * safePercent / 100 };
+        }),
       }),
       updateNote: (lineId, note) => set({
         cart: get().cart.map((c) => c.lineId === lineId ? { ...c, note } : c),
