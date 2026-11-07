@@ -18,7 +18,7 @@ Leave `.env` unconfigured. The app then saves fictional data to that browser's l
 1. Clone/fork this repo and create a **new Supabase project under your own account**. No repository-author credentials are needed.
 2. Read and run the [owner-scoped database SQL](backend/personal-workspace.md). The schema uses Auth, RLS and a revision-checked save function. Do not use the unrelated `optional-supabase-schema.md` blueprint for this adapter.
 3. In Supabase Authentication, enable Email/Password login. Choose whether email confirmation is required.
-4. Copy `.env.example` to `.env` locally:
+4. Create a local `.env` file (already ignored by Git) containing:
    ```env
    VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
    VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_PUBLISHABLE_KEY
