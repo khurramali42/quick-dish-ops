@@ -20,7 +20,7 @@ as a public production service.
 
 A starting PostgreSQL schema with tenant IDs, authenticated organization
 membership and restrictive RLS policies is located at
-[`docs/backend/optional-supabase-schema.sql`](backend/optional-supabase-schema.sql).
+[`docs/backend/optional-supabase-schema.md`](backend/optional-supabase-schema.md).
 
 **The SQL is an integration blueprint, not an active migration.** It is not
 connected to the current browser app and has not been deployed or security-audited
