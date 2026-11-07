@@ -383,7 +383,7 @@ function PaymentDialog({ open, onClose, onDone }: { open: boolean; onClose: () =
         <DialogHeader>
           <div className="shrink-0 border-b bg-card px-5 py-4 pr-12 sm:px-6">
             <DialogTitle className="text-lg font-extrabold tracking-tight">Payment Checkout</DialogTitle>
-            <p className="mt-0.5 text-xs text-muted-foreground">Confirm order details, select a payment method, then complete the sale.</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Demo checkout only. No bank, wallet or card payment is charged. Choose a simulated method to record the local sale.</p>
           </div>
         </DialogHeader>
         <div className="grid min-h-0 flex-1 overflow-y-auto bg-[#f7f7f8] md:grid-cols-[0.95fr_1.05fr] md:overflow-hidden dark:bg-background">
