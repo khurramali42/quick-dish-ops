@@ -12,7 +12,7 @@ export const Route = createFileRoute("/settings")({
 });
 
 function SettingsPage() {
-  const { settings, updateSettings, resetAll, products, categories, customers, orders, currentCashier, setCurrentCashier } = useStore();
+  const { settings, updateSettings, resetAll, products, categories, customers, orders, activityLog, currentCashier, setCurrentCashier } = useStore();
   const [operatorName, setOperatorName] = useState(currentCashier);
   const importRef = useRef<HTMLInputElement>(null);
   const [s, setS] = useState<Settings>(settings);
@@ -32,6 +32,7 @@ function SettingsPage() {
         cart: state.cart, orderType: state.orderType, table: state.table,
         customerId: state.customerId, billDiscount: state.billDiscount,
         currentCashier: state.currentCashier,
+        activityLog: state.activityLog,
       },
     }, null, 2);
     const url = URL.createObjectURL(new Blob([data], { type: "application/json" }));
@@ -100,6 +101,7 @@ function SettingsPage() {
         customerId: records.customerId,
         billDiscount: records.billDiscount,
         currentCashier: records.currentCashier,
+        activityLog: Array.isArray(records.activityLog) ? records.activityLog : [],
       });
       useStore.setState(next);
       setS(records.settings as Settings);
@@ -175,6 +177,16 @@ function SettingsPage() {
             </div>
           </div>
 
+          <div className="card-elevated p-6 text-sm">
+            <h3 className="mb-2 font-semibold">Local activity history</h3>
+            <p className="mb-3 text-xs text-muted-foreground">Demo-only events. These can be edited by anyone with browser data access; they are not a secure audit trail.</p>
+            <div className="max-h-48 space-y-2 overflow-y-auto">{activityLog.slice(0,15).map((event) => (
+              <div key={event.id} className="rounded-lg border p-2 text-[11px]">
+                <div className="flex justify-between gap-2"><b>{event.action}</b><span className="text-muted-foreground">{new Date(event.createdAt).toLocaleString("en-PK")}</span></div>
+                <div className="mt-1 text-muted-foreground">{event.details} · {event.operator}</div>
+              </div>
+            ))}</div>
+          </div>
           <div className="card-elevated p-6 text-sm">
             <h3 className="font-semibold mb-3">System info</h3>
             <ul className="space-y-1 text-muted-foreground">
