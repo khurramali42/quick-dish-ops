@@ -139,6 +139,7 @@ export interface Order {
   customerName?: string;
   table?: string;
   orderType: OrderType;
+  reservationId?: string; // seated reservation linked at checkout
   items: CartItem[];
   subtotal: number;
   itemDiscount: number;
