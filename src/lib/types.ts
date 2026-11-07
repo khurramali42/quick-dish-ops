@@ -140,6 +140,7 @@ export interface Order {
   table?: string;
   orderType: OrderType;
   reservationId?: string; // seated reservation linked at checkout
+  kitchenTicketId?: string; // original unpaid kitchen ticket ID, if dispatched before checkout
   items: CartItem[];
   subtotal: number;
   itemDiscount: number;
