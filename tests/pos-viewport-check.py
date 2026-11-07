@@ -16,6 +16,20 @@ def test_pos(browser, width, height, mobile=False):
     cards = page.locator("article.group")
     cards.first.wait_for(timeout=15000)
     assert cards.count() >= 14, f"Expected menu products; found {cards.count()}"
+    # Verify reference-style menu geometry rather than only checking a successful build.
+    assert page.locator("body").evaluate("el => el.scrollWidth <= window.innerWidth + 2"), f"Unexpected horizontal overflow at {width}px"
+    card_boxes = [cards.nth(i).bounding_box() for i in range(3)]
+    assert all(card_boxes), f"Missing menu card bounds at {width}px"
+    if width >= 768:
+        assert max(box["y"] for box in card_boxes) - min(box["y"] for box in card_boxes) <= 3, f"Menu is not three-column at {width}px: {card_boxes}"
+        assert card_boxes[0]["x"] < card_boxes[1]["x"] < card_boxes[2]["x"], f"Menu columns are misaligned: {card_boxes}"
+        summary = page.get_by_label("Current order")
+        assert summary.is_visible(), f"Bill summary hidden at {width}px"
+        header = page.locator("header").first
+        assert abs(header.bounding_box()["height"] - 52) <= 2, f"Header differs from compact reference at {width}px"
+    else:
+        assert page.get_by_role("button", name="Menu", exact=True).is_visible()
+
     for i in range(14):
         cards.nth(i).locator("button").first.click(timeout=10000)
     if mobile:
