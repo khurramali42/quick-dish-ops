@@ -14,7 +14,7 @@ beforeEach(() => {
     suppliers: structuredClone(seedSuppliers),
     customers: structuredClone(seedCustomers),
     settings: { ...seedSettings, serviceChargePct: 0 },
-    orders: [], purchases: [], cart: [item], billDiscount: 0, customerId: "cu1",
+    orders: [], purchases: [], activityLog: [], cart: [item], billDiscount: 0, customerId: "cu1",
   });
 });
 
@@ -43,6 +43,57 @@ describe("expandable POS line discount calculation", () => {
     expect(useStore.getState().cart[0].discountPercent).toBeUndefined();
     useStore.getState().updateQty(item.lineId, 2);
     expect(useStore.getState().cart[0].discount).toBe(100);
+  });
+});
+
+describe("public demo operational extensions", () => {
+  test("settles supplier invoice only up to remaining balance", () => {
+    const supplier = useStore.getState().suppliers.find((entry) => entry.id === "s1")!;
+    useStore.getState().addPurchase({
+      supplierId: supplier.id, supplierName: supplier.name, date: new Date().toISOString(),
+      items: [{ productId: "p1", name: "Zinger Burger", qty: 2, cost: 100 }],
+      total: 200, paid: 50,
+    });
+    const purchase = useStore.getState().purchases[0];
+    expect(useStore.getState().suppliers.find((entry) => entry.id === "s1")?.balance).toBe(150);
+    expect(() => useStore.getState().settlePurchase(purchase.id, 151, "cash")).toThrow(/remaining/);
+    useStore.getState().settlePurchase(purchase.id, 100, "bank");
+    expect(useStore.getState().purchases[0].paid).toBe(150);
+    expect(useStore.getState().purchases[0].settlements?.[0].method).toBe("bank");
+    expect(useStore.getState().suppliers.find((entry) => entry.id === "s1")?.balance).toBe(50);
+    useStore.getState().settlePurchase(purchase.id, 50, "cash");
+    expect(useStore.getState().suppliers.find((entry) => entry.id === "s1")?.balance).toBe(0);
+    expect(() => useStore.getState().settlePurchase(purchase.id, 1, "cash")).toThrow(/remaining/);
+  });
+
+  test("deducts ingredient stocks but does not double consume finished product", () => {
+    const product = useStore.getState().products.find((entry) => entry.id === "p1")!;
+    const ingredient = useStore.getState().products.find((entry) => entry.id === "p2")!;
+    useStore.getState().setRecipe(product.id, [{ ingredientProductId: ingredient.id, qty: 0.5 }]);
+    useStore.setState({ cart: [item] });
+    const beforeDish = useStore.getState().products.find((entry) => entry.id === product.id)!.stock;
+    const beforeIngredient = useStore.getState().products.find((entry) => entry.id === ingredient.id)!.stock;
+    useStore.getState().checkout(700, "cash");
+    expect(useStore.getState().products.find((entry) => entry.id === product.id)?.stock).toBe(beforeDish);
+    expect(useStore.getState().products.find((entry) => entry.id === ingredient.id)?.stock).toBe(beforeIngredient - 0.5);
+  });
+
+  test("fails checkout atomically when aggregated recipe ingredients are insufficient", () => {
+    const dish = useStore.getState().products.find((p) => p.id === "p1")!;
+    const ingredient = useStore.getState().products.find((p) => p.id === "p2")!;
+    useStore.getState().setRecipe(dish.id, [{ ingredientProductId: ingredient.id, qty: 20 }]);
+    useStore.setState({ cart: [{ ...item, lineId: "a" }, { ...item, lineId: "b" }] });
+    expect(() => useStore.getState().checkout(2000, "cash")).toThrow(/Insufficient stock/);
+    expect(useStore.getState().orders).toHaveLength(0);
+    expect(useStore.getState().products.find((p) => p.id === ingredient.id)?.stock).toBe(30);
+  });
+
+  test("waste movement requires a reason and cannot exceed actual stock", () => {
+    expect(() => useStore.getState().recordWaste("p1", 2, " ")).toThrow(/reason/);
+    expect(() => useStore.getState().recordWaste("p1", 50, "spoiled")).toThrow(/available/);
+    useStore.getState().recordWaste("p1", 3, "Expired");
+    expect(useStore.getState().products.find((p) => p.id === "p1")?.stock).toBe(37);
+    expect(useStore.getState().activityLog.find((e) => e.action === "inventory.waste")?.details).toContain("Expired");
   });
 });
 
