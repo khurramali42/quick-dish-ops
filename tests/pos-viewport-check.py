@@ -25,7 +25,7 @@ def test_pos(browser, width, height, mobile=False):
         assert card_boxes[0]["x"] < card_boxes[1]["x"] < card_boxes[2]["x"], f"Menu columns are misaligned: {card_boxes}"
         summary = page.get_by_label("Current order")
         assert summary.is_visible(), f"Bill summary hidden at {width}px"
-        header = page.locator("header").first
+        header = page.locator("header:visible").first
         assert abs(header.bounding_box()["height"] - 52) <= 2, f"Header differs from compact reference at {width}px"
     else:
         assert page.get_by_role("button", name="Menu", exact=True).is_visible()
