@@ -9,7 +9,8 @@ payment records are simulated locally; **do not enter real customer or card data
 
 The latest demo now includes:
 - A supplier purchase-payable ledger with recorded partial settlements.
-- Ingredient recipes which can deduct tracked ingredient units on checkout.
+- Optional unpaid-order kitchen dispatch and persistence of preparation progress through local checkout.
+- Ingredient recipes which can deduct tracked ingredient units on checkout; sales link to seated reservation records when available.
 - Inventory waste entries with reason and local activity history.
 - Previously implemented local reservations, kitchen states, checkout, and JSON backups.
 
