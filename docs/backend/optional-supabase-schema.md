@@ -128,14 +128,12 @@ create policy "organization_member_read" on public.restaurant_organizations
     or exists (select 1 from public.restaurant_staff s
       where s.organization_id = id and s.user_id = (select auth.uid()) and s.active)
   );
--- Membership listing includes only the caller's own row, or rows of organizations
--- directly owned by the caller, avoiding policy self-recursion.
+-- Return only the signed-in user's own membership. Do not reference the
+-- organizations table from this SELECT policy: organizations SELECT uses
+-- membership lookup, and mutual policy references can cause recursion.
+-- Owner-facing staff rosters must be provided by a secured admin API.
 create policy "staff_visible" on public.restaurant_staff
-  for select to authenticated using (
-    user_id = (select auth.uid())
-    or exists (select 1 from public.restaurant_organizations o
-      where o.id = organization_id and o.owner_id = (select auth.uid()))
-  );
+  for select to authenticated using (user_id = (select auth.uid()));
 create policy "staff_owner_insert" on public.restaurant_staff
   for insert to authenticated with check (
     exists (select 1 from public.restaurant_organizations o
