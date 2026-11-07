@@ -339,16 +339,24 @@ export const useStore = create<State>()(
         if (!Number.isFinite(paid) || paid < t.total || paid < 0) {
           throw new Error("Payment must cover the total bill.");
         }
+        const stockDemand = new Map<string, number>();
         for (const item of cart) {
           if (!Number.isInteger(item.qty) || item.qty < 1 || !Number.isFinite(item.unitPrice) || item.unitPrice < 0) {
             throw new Error("Cart contains an invalid item quantity or price.");
           }
           const product = products.find((p) => p.id === item.productId);
           if (!product || !product.available) throw new Error("A product in the cart is no longer available.");
-          if (product.trackStock) {
-            const requested = cart.filter((c) => c.productId === product.id).reduce((n, c) => n + c.qty, 0);
-            if (requested > product.stock) throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}.`);
+          if (product.recipe?.length) {
+            for (const ingredient of product.recipe) {
+              stockDemand.set(ingredient.ingredientProductId, (stockDemand.get(ingredient.ingredientProductId) ?? 0) + ingredient.qty * item.qty);
+            }
+          } else if (product.trackStock) {
+            stockDemand.set(product.id, (stockDemand.get(product.id) ?? 0) + item.qty);
           }
+        }
+        for (const [id, units] of stockDemand) {
+          const product = products.find((p) => p.id === id);
+          if (!product || !product.trackStock || units > product.stock + 0.000001) throw new Error(`Insufficient stock for ${product?.name ?? "recipe ingredient"}.`);
         }
         const customer = customers.find((c) => c.id === customerId);
         const order: Order = {
@@ -376,9 +384,8 @@ export const useStore = create<State>()(
         };
         // deduct stock
         const nextProducts = products.map((p) => {
-          if (!p.trackStock) return p;
-          const soldQty = cart.filter((c) => c.productId === p.id).reduce((s, c) => s + c.qty, 0);
-          return soldQty ? { ...p, stock: Math.max(0, p.stock - soldQty) } : p;
+          const consumed = stockDemand.get(p.id) ?? 0;
+          return consumed > 0 ? { ...p, stock: Math.max(0, p.stock - consumed) } : p;
         });
         // update customer spend
         const nextCustomers = customers.map((c) => c.id === customerId
@@ -389,6 +396,7 @@ export const useStore = create<State>()(
           products: nextProducts,
           customers: nextCustomers,
           cart: [], billDiscount: 0, table: undefined,
+          activityLog: [{ id: shortId("A"), createdAt: todayISO(), operator: currentCashier, action: "sale.completed", subjectId: order.id, details: order.invoiceNo }, ...get().activityLog],
         });
         return order;
       },
@@ -532,6 +540,7 @@ export const useStore = create<State>()(
           products: nextProducts,
           customers: nextCustomers,
           orders: orders.map((o) => o.id === id ? { ...o, status: "refunded" } : o),
+          activityLog: [{ id: shortId("A"), createdAt: todayISO(), operator: get().currentCashier, action: "sale.refunded", subjectId: id, details: order.invoiceNo }, ...get().activityLog],
         });
       },
       resetAll: () => {
