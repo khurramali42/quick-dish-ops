@@ -18,16 +18,20 @@ function ReportsPage() {
   const completedOrders = orders.filter((o) => o.status !== "refunded" && o.status !== "cancelled");
   const grossSales = completedOrders.reduce((s, o) => s + o.total, 0);
   const totalCost = completedOrders.reduce((s, o) =>
-    s + o.items.reduce((c, i) => c + (products.find((p) => p.id === i.productId)?.cost ?? 0) * i.qty, 0), 0);
+    s + o.items.reduce((c, i) => c + (i.unitCostSnapshot ?? products.find((p) => p.id === i.productId)?.cost ?? 0) * i.qty, 0), 0);
   const totalExpense = expenses.reduce((s, e) => s + e.amount, 0);
   const totalTax = completedOrders.reduce((s, o) => s + o.tax, 0);
   const totalDiscount = completedOrders.reduce((s, o) => s + o.itemDiscount + o.billDiscount, 0);
-  const netProfit = grossSales - totalCost - totalExpense;
+  const netProfit = grossSales - totalTax - totalCost - totalExpense;
 
   const salesByCat = useMemo(() => categories.map((c) => {
     const revenue = completedOrders.reduce((s, o) => s + o.items.reduce((r, i) => {
       const p = products.find((p) => p.id === i.productId);
-      return p?.categoryId === c.id ? r + i.unitPrice * i.qty : r;
+      const categoryId = i.categoryIdSnapshot ?? p?.categoryId;
+      const grossAfterItemDiscount = Math.max(0, i.unitPrice * i.qty - i.discount);
+      const afterLineDiscounts = Math.max(0, o.subtotal - o.itemDiscount);
+      const billDiscountShare = afterLineDiscounts > 0 ? o.billDiscount * grossAfterItemDiscount / afterLineDiscounts : 0;
+      return categoryId === c.id ? r + Math.max(0, grossAfterItemDiscount - billDiscountShare) : r;
     }, 0), 0);
     return { name: c.name, revenue };
   }).filter((x) => x.revenue > 0), [completedOrders, products, categories]);
@@ -43,10 +47,10 @@ function ReportsPage() {
       <PageHeader title="Reports & Analytics" subtitle="Sales, profit and business health" />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <Stat label="Gross Sales" value={money(grossSales, settings.currency)} />
+        <Stat label="Sales Collected" value={money(grossSales, settings.currency)} />
         <Stat label="Cost of Goods" value={money(totalCost, settings.currency)} />
         <Stat label="Expenses" value={money(totalExpense, settings.currency)} />
-        <Stat label="Net Profit" value={money(netProfit, settings.currency)} accent />
+        <Stat label="Est. Profit (ex. tax)" value={money(netProfit, settings.currency)} accent />
         <Stat label="Tax Collected" value={money(totalTax, settings.currency)} />
         <Stat label="Discounts Given" value={money(totalDiscount, settings.currency)} />
         <Stat label="Orders" value={String(completedOrders.length)} />

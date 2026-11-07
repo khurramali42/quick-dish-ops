@@ -117,6 +117,32 @@ with sync_playwright() as p:
     kitchen_page.close()
     print("PASS kitchen ticket lifecycle")
 
+    # Audit the previously disconnected purchase->supplier and settings->backup UI paths.
+    audit_page = browser.new_page(viewport={"width": 1280, "height": 800}, accept_downloads=True)
+    audit_page.goto(BASE + "/purchases", wait_until="networkidle")
+    audit_page.get_by_role("button", name="New purchase").click()
+    audit_page.get_by_role("spinbutton", name="Purchase paid amount").fill("0")
+    audit_page.get_by_role("button", name="Save purchase").click()
+    recorded_state = audit_page.evaluate("JSON.parse(localStorage.getItem('spice-pos-v1')).state")
+    assert recorded_state["purchases"], "Purchase did not persist"
+    assert recorded_state["purchases"][0]["paid"] == 0, "Purchase partial payment was not saved"
+    selected_supplier = recorded_state["suppliers"][0]
+    assert selected_supplier["balance"] > 0, "Supplier payable was not updated"
+    audit_page.goto(BASE + "/settings", wait_until="networkidle")
+    assert audit_page.get_by_text("Demo Operator Profile").is_visible()
+    audit_page.get_by_placeholder("Demo operator").fill("Audit Operator")
+    audit_page.get_by_role("button", name="Save changes").click()
+    with audit_page.expect_download() as download_event:
+        audit_page.get_by_role("button", name="Export backup (JSON)").click()
+    download = download_event.value
+    import json
+    backup_content = json.loads(Path(download.path()).read_text())
+    assert backup_content["version"] == 2, "Expected current backup version"
+    assert all(key in backup_content["data"] for key in ["restaurantTables", "reservations", "heldOrders", "parkedHistory", "purchases", "currentCashier"]), "Missing linked backup records"
+    assert backup_content["data"]["currentCashier"] == "Audit Operator", "Operator display name was not saved"
+    audit_page.close()
+    print("PASS audit: supplier payable, demo operator and linked JSON backup")
+
     for width, height in [(1440, 900), (900, 800), (390, 844)]:
         page = browser.new_page(viewport={"width": width, "height": height})
         error_log = []

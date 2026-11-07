@@ -51,6 +51,7 @@ describe("restaurant kitchen and receiving workflow", () => {
     const order = useStore.getState().checkout(700, "cash");
     expect(order.kitchenStatus).toBe("new");
     useStore.getState().setKitchenStatus(order.id, "preparing");
+    useStore.getState().toggleKitchenItem(order.id, item.lineId);
     useStore.getState().setKitchenStatus(order.id, "ready");
     expect(useStore.getState().orders[0].kitchenStatus).toBe("ready");
     useStore.getState().updateSettings({ branchName: "Test branch" });
@@ -74,9 +75,13 @@ describe("restaurant kitchen and receiving workflow", () => {
     expect(useStore.getState().orders[0].kitchenDoneLineIds).toEqual([]);
     useStore.getState().toggleKitchenItem(order.id, "invalid-line");
     expect(useStore.getState().orders[0].kitchenDoneLineIds).toEqual([]);
+    useStore.getState().setKitchenStatus(order.id, "ready");
+    expect(useStore.getState().orders[0].kitchenStatus).toBe("preparing");
+    useStore.getState().toggleKitchenItem(order.id, item.lineId);
+    useStore.getState().setKitchenStatus(order.id, "ready");
     useStore.getState().setKitchenStatus(order.id, "served");
     useStore.getState().toggleKitchenItem(order.id, item.lineId);
-    expect(useStore.getState().orders[0].kitchenDoneLineIds).toEqual([]);
+    expect(useStore.getState().orders[0].kitchenDoneLineIds).toEqual([item.lineId]);
   });
 
   test("refunded sales cannot be moved through kitchen workflow", () => {
@@ -101,6 +106,46 @@ describe("restaurant kitchen and receiving workflow", () => {
     });
     expect(useStore.getState().products.find((p) => p.id === product.id)?.stock).toBe(before + 8);
     expect(useStore.getState().purchases[0].items).toHaveLength(2);
+  });
+
+  test("partially paid purchases increase supplier payable balance", () => {
+    const supplier = useStore.getState().suppliers[0];
+    const oldBalance = supplier.balance;
+    const product = useStore.getState().products[0];
+    useStore.getState().addPurchase({
+      supplierId: supplier.id, supplierName: supplier.name, date: new Date().toISOString(),
+      items: [{ productId: product.id, name: product.name, qty: 2, cost: 200 }],
+      total: 400, paid: 100,
+    });
+    expect(useStore.getState().suppliers.find((s) => s.id === supplier.id)?.balance).toBe(oldBalance + 300);
+    expect(() => useStore.getState().deleteSupplier(supplier.id)).toThrow(/purchase history/);
+  });
+
+  test("product, category and customer references cannot be orphaned", () => {
+    const order = useStore.getState().checkout(700, "cash");
+    const productId = item.productId;
+    const categoryId = useStore.getState().products.find((p) => p.id === productId)!.categoryId;
+    expect(() => useStore.getState().deleteProduct(productId)).toThrow(/referenced/);
+    expect(() => useStore.getState().deleteCategory(categoryId)).toThrow(/contains products/);
+    expect(() => useStore.getState().deleteCustomer(order.customerId!)).toThrow(/linked/);
+  });
+
+  test("sale cost snapshot survives changes to product purchase cost", () => {
+    const order = useStore.getState().checkout(700, "cash");
+    const recorded = order.items[0].unitCostSnapshot;
+    expect(recorded).toBe(seedProducts[0].cost);
+    useStore.getState().upsertProduct({ ...useStore.getState().products[0], cost: 999 });
+    expect(useStore.getState().orders[0].items[0].unitCostSnapshot).toBe(recorded);
+    expect(useStore.getState().orders[0].items[0].categoryIdSnapshot).toBe(seedProducts[0].categoryId);
+  });
+
+  test("invalid kitchen transitions do not bypass preparation checklist", () => {
+    const order = useStore.getState().checkout(700, "cash");
+    useStore.getState().setKitchenStatus(order.id, "served");
+    expect(useStore.getState().orders[0].kitchenStatus).toBe("new");
+    useStore.getState().setKitchenStatus(order.id, "preparing");
+    useStore.getState().setKitchenStatus(order.id, "ready");
+    expect(useStore.getState().orders[0].kitchenStatus).toBe("preparing");
   });
 
   test("invalid or fraudulent purchase lines do not affect inventory", () => {

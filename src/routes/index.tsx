@@ -19,8 +19,8 @@ function Dashboard() {
   const todaySales = todaysOrders.reduce((total, order) => total + order.total, 0);
   const todayExpenses = expenses.filter((entry) => new Date(entry.date).toDateString() === today)
     .reduce((total, entry) => total + entry.amount, 0);
-  const todayGrossProfit = todaysOrders.reduce((total, order) => total + order.total -
-    order.items.reduce((cost, item) => cost + (products.find((p) => p.id === item.productId)?.cost ?? 0) * item.qty, 0), 0);
+  const todayGrossProfit = todaysOrders.reduce((total, order) => total + order.total - order.tax -
+    order.items.reduce((cost, item) => cost + (item.unitCostSnapshot ?? products.find((p) => p.id === item.productId)?.cost ?? 0) * item.qty, 0), 0);
   const todayProfit = todayGrossProfit - todayExpenses;
   const lowStock = products.filter((product) => product.trackStock && product.stock <= 10);
   const kitchenQueue = completed.filter((order) => (order.kitchenStatus ?? "new") !== "served");

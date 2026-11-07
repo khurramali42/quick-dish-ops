@@ -64,6 +64,10 @@ To run the built app locally, use `bun run start`. Browser-only functional tests
 
 **Stack:** React, TypeScript, TanStack Start/Router, Vite, Tailwind CSS, Zustand, Bun and Nitro.
 
+## Cross-module audit
+
+See [cross-module integrity and settings audit (2026-11-07)](docs/cross-module-audit-2026-11-07.md) for current relationships, tested fixes, and the remaining production gaps.
+
 ## Before using this for a real restaurant
 
 This code is a starting point for development, **not a commercially certified POS**. A real deployment would need secured authentication and roles, a central transactional database, reliable backups, audit trails, privacy controls, server-side inventory and payment validation, hardware/printer testing, multi-device concurrency and jurisdiction-specific tax review. Browser storage cannot safely replace those systems.

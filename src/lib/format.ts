@@ -1,6 +1,6 @@
 export function money(n: number, currency = "PKR") {
   const v = Number.isFinite(n) ? n : 0;
-  return `${currency} ${v.toLocaleString("en-PK", { maximumFractionDigits: 0 })}`;
+  return `${currency} ${v.toLocaleString("en-PK", { maximumFractionDigits: 2 })}`;
 }
 
 export function shortId(prefix = "") {

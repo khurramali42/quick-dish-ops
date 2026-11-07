@@ -40,7 +40,7 @@ function SuppliersPage() {
                 <td className={`px-4 py-2.5 text-right font-medium ${s.balance > 0 ? "text-destructive" : ""}`}>{money(s.balance, settings.currency)}</td>
                 <td className="px-4 py-2.5 text-right">
                   <button onClick={() => setEdit(s)} className="p-1.5 rounded hover:bg-accent"><Pencil className="h-3.5 w-3.5" /></button>
-                  <button onClick={() => { if (confirm(`Delete ${s.name}?`)) { deleteSupplier(s.id); toast.success("Deleted"); } }} className="p-1.5 rounded hover:bg-accent text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => { if (confirm(`Delete ${s.name}?`)) { try { deleteSupplier(s.id); toast.success("Deleted"); } catch (error) { toast.error(error instanceof Error ? error.message : "Cannot delete linked record."); } } }} className="p-1.5 rounded hover:bg-accent text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
                 </td>
               </tr>
             ))}

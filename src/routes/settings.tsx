@@ -12,7 +12,8 @@ export const Route = createFileRoute("/settings")({
 });
 
 function SettingsPage() {
-  const { settings, updateSettings, resetAll, products, categories, customers, orders } = useStore();
+  const { settings, updateSettings, resetAll, products, categories, customers, orders, currentCashier, setCurrentCashier } = useStore();
+  const [operatorName, setOperatorName] = useState(currentCashier);
   const importRef = useRef<HTMLInputElement>(null);
   const [s, setS] = useState<Settings>(settings);
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => setS((p) => ({ ...p, [k]: v }));
@@ -20,12 +21,17 @@ function SettingsPage() {
   const exportAll = () => {
     const state = useStore.getState();
     const data = JSON.stringify({
-      format: "spice-pos-browser-backup", version: 1, exportedAt: new Date().toISOString(),
+      format: "spice-pos-browser-backup", version: 2, exportedAt: new Date().toISOString(),
       data: {
         products: state.products, categories: state.categories,
         customers: state.customers, suppliers: state.suppliers,
         orders: state.orders, purchases: state.purchases,
         expenses: state.expenses, settings: state.settings,
+        restaurantTables: state.restaurantTables, reservations: state.reservations,
+        heldOrders: state.heldOrders, parkedHistory: state.parkedHistory,
+        cart: state.cart, orderType: state.orderType, table: state.table,
+        customerId: state.customerId, billDiscount: state.billDiscount,
+        currentCashier: state.currentCashier,
       },
     }, null, 2);
     const url = URL.createObjectURL(new Blob([data], { type: "application/json" }));
@@ -47,7 +53,7 @@ function SettingsPage() {
       if (!value || typeof value !== "object") throw new Error("Invalid backup format.");
       const backup = value as Record<string, unknown>;
       const data = backup.data;
-      if (backup.format !== "spice-pos-browser-backup" || backup.version !== 1 || !data || typeof data !== "object") {
+      if (backup.format !== "spice-pos-browser-backup" || ![1, 2].includes(Number(backup.version)) || !data || typeof data !== "object") {
         throw new Error("Unsupported backup. Export a fresh backup from Settings first.");
       }
       const records = data as Record<string, unknown>;
@@ -59,8 +65,20 @@ function SettingsPage() {
       if (typeof profile.businessName !== "string" || !["58mm", "80mm", "A4"].includes(String(profile.receiptSize))) {
         throw new Error("Backup business profile is invalid.");
       }
-      if (!confirm("Replace this browser's products, orders, stock, purchases, customers and settings with the selected backup? Download a backup of current data first.")) return;
-      useStore.setState({
+      const isV2 = backup.version === 2;
+      const extendedKeys = ["restaurantTables", "reservations", "heldOrders", "parkedHistory", "cart"] as const;
+      if (isV2 && !extendedKeys.every((key) => Array.isArray(records[key]))) throw new Error("Backup is missing tables, reservations or pending-order data.");
+      if (isV2 && (typeof records.currentCashier !== "string" || typeof records.billDiscount !== "number" || !["dine-in", "takeaway", "delivery", "pickup"].includes(String(records.orderType)))) throw new Error("Backup has invalid cashier or POS session fields.");
+      const tableRecords = isV2 ? records.restaurantTables as ReturnType<typeof useStore.getState>["restaurantTables"] : undefined;
+      const reservationRecords = isV2 ? records.reservations as ReturnType<typeof useStore.getState>["reservations"] : undefined;
+      if (isV2 && (!tableRecords!.every((table) => typeof table?.id === "string" && typeof table?.label === "string" && Number.isInteger(table?.seats)) ||
+        !reservationRecords!.every((reservation) => typeof reservation?.tableId === "string" && typeof reservation?.startAt === "string" && typeof reservation?.status === "string") ||
+        !reservationRecords!.every((reservation) => tableRecords!.some((table) => table.id === reservation.tableId)))) throw new Error("Backup contains invalid table or reservation links.");
+      const message = isV2
+        ? "Replace ALL browser-local business, table, reservation, order and cashier demo data with this backup? Download current data first."
+        : "This older backup has no tables, reservations or parked orders. Your current table bookings will be kept, but older product/order records will replace the current ones. Continue?";
+      if (!confirm(message)) return;
+      const next: Partial<ReturnType<typeof useStore.getState>> = {
         products: records.products as typeof products,
         categories: records.categories as typeof categories,
         customers: records.customers as typeof customers,
@@ -69,9 +87,23 @@ function SettingsPage() {
         purchases: records.purchases as ReturnType<typeof useStore.getState>["purchases"],
         expenses: records.expenses as ReturnType<typeof useStore.getState>["expenses"],
         settings: records.settings as Settings,
-        cart: [], heldOrders: [], billDiscount: 0, table: undefined,
+        cart: [], heldOrders: [], parkedHistory: [], billDiscount: 0, table: undefined,
+      };
+      if (isV2) Object.assign(next, {
+        restaurantTables: tableRecords,
+        reservations: reservationRecords,
+        heldOrders: records.heldOrders,
+        parkedHistory: records.parkedHistory,
+        cart: records.cart,
+        orderType: records.orderType,
+        table: records.table,
+        customerId: records.customerId,
+        billDiscount: records.billDiscount,
+        currentCashier: records.currentCashier,
       });
+      useStore.setState(next);
       setS(records.settings as Settings);
+      if (isV2) setOperatorName(records.currentCashier as string);
       toast.success("Backup restored to this browser.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not import backup.");
@@ -87,6 +119,13 @@ function SettingsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 card-elevated p-6 space-y-4">
           <h3 className="font-semibold">Business Profile</h3>
+          <div className="rounded-xl border bg-muted/30 p-3">
+            <h4 className="mb-1 text-xs font-bold">Demo Operator Profile</h4>
+            <p className="mb-2 text-[11px] text-muted-foreground">Display name only. This is not a login, verified staff account or permission role.</p>
+            <label className="block text-xs"><span className="mb-1 block text-muted-foreground">Cashier display name</span>
+              <input value={operatorName} onChange={(e) => setOperatorName(e.target.value)} maxLength={60} className="input" placeholder="Demo operator" />
+            </label>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Business name"><input value={s.businessName} onChange={(e) => set("businessName", e.target.value)} className="input" /></Field>
             <Field label="Branch name"><input value={s.branchName} onChange={(e) => set("branchName", e.target.value)} className="input" /></Field>
@@ -114,14 +153,20 @@ function SettingsPage() {
           </div>
 
           <div className="pt-4 border-t flex justify-end">
-            <button onClick={() => { updateSettings(s); toast.success("Settings saved"); }} className="px-5 py-2 rounded-lg bg-brand-gradient text-brand-foreground text-sm font-medium">Save changes</button>
+            <button onClick={() => { try {
+              if (!s.businessName.trim() || !s.branchName.trim() || !s.currency.trim()) throw new Error("Enter the business name, branch and currency.");
+              if (![s.defaultTaxRate, s.serviceChargePct].every((n) => Number.isFinite(n) && n >= 0 && n <= 100)) throw new Error("Tax and service charge must be between 0 and 100%.");
+              setCurrentCashier(operatorName);
+              updateSettings(s);
+              toast.success("Business settings and demo operator saved");
+            } catch (error) { toast.error(error instanceof Error ? error.message : "Unable to save settings."); } }} className="px-5 py-2 rounded-lg bg-brand-gradient text-brand-foreground text-sm font-medium">Save changes</button>
           </div>
         </div>
 
         <div className="space-y-4">
           <div className="card-elevated p-6">
             <h3 className="font-semibold mb-3">Backup & Data</h3>
-            <p className="mb-3 text-xs leading-5 text-muted-foreground">Records are saved in this browser only. Export regularly and store the JSON file privately. Import replaces existing local data.</p>
+            <p className="mb-3 text-xs leading-5 text-muted-foreground">Records are saved in this browser only. Version 2 backup includes tables, reservations and held orders. Keep backup files private: they contain customer and business information.</p>
             <div className="space-y-2">
               <button onClick={exportAll} className="w-full flex items-center gap-2 justify-center px-4 py-2 rounded-lg border text-sm hover:bg-accent"><Download className="h-4 w-4" /> Export backup (JSON)</button>
               <input ref={importRef} type="file" accept=".json,application/json" className="sr-only" aria-label="Choose POS backup" onChange={(e) => void importBackup(e.target.files?.[0])} />

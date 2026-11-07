@@ -15,7 +15,7 @@ export const Route = createFileRoute("/products")({
 });
 
 const empty = (): Product => ({
-  id: shortId("p"), name: "", categoryId: "", sku: "", price: 0, cost: 0, taxRate: 5,
+  id: shortId("p"), name: "", categoryId: "", sku: "", price: 0, cost: 0, taxRate: 0,
   emoji: "🍽️", available: true, featured: false, stock: 0, trackStock: true, prepTime: 5,
 });
 
@@ -32,7 +32,7 @@ function ProductsPage() {
         title="Products"
         subtitle={`${products.length} items on the menu`}
         action={
-          <button onClick={() => setEdit(empty())} className="inline-flex items-center gap-2 bg-brand-gradient text-brand-foreground px-4 py-2 rounded-lg font-medium text-sm">
+          <button onClick={() => setEdit({ ...empty(), taxRate: settings.defaultTaxRate })} className="inline-flex items-center gap-2 bg-brand-gradient text-brand-foreground px-4 py-2 rounded-lg font-medium text-sm">
             <Plus className="h-4 w-4" /> New product
           </button>
         }
@@ -85,7 +85,7 @@ function ProductsPage() {
                 </td>
                 <td className="px-4 py-2.5 text-right">
                   <button onClick={() => setEdit(p)} className="p-1.5 rounded hover:bg-accent"><Pencil className="h-3.5 w-3.5" /></button>
-                  <button onClick={() => { if (confirm(`Delete "${p.name}"?`)) { deleteProduct(p.id); toast.success("Deleted"); } }} className="p-1.5 rounded hover:bg-accent text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => { if (confirm(`Delete "${p.name}"?`)) { try { deleteProduct(p.id); toast.success("Deleted"); } catch (error) { toast.error(error instanceof Error ? error.message : "Cannot delete linked record."); } } }} className="p-1.5 rounded hover:bg-accent text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
                 </td>
               </tr>
             ))}
